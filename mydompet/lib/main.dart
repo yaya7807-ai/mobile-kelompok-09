@@ -31,25 +31,25 @@ class HomeScreen extends StatelessWidget {
               // Gambar bintang
               Image.asset(
                 'assets/images/logo.png',
-                width: 300,
-                height: 300, // ubah sesuai ukuran logo kamu
+                width: 200,
+                height: 200, // ubah sesuai ukuran logo kamu
               ),
 
               const SizedBox(height: 40),
 
               // Teks utama
               const Text(
-                'KELOLA KEUANGAN\nDAN JANGAN JUDI ONLINE',
+                'KELOLA KEUANGAN\nDAN JANGAN JUDI ONLINE ',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  height: 1.4,
+                  fontSize: 20,
+                  height: 1,
                 ),
               ),
 
-              const SizedBox(height: 120),
+              const SizedBox(height: 200),
 
               // Tombol
               ElevatedButton(

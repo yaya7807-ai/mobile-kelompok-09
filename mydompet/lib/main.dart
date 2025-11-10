@@ -22,18 +22,19 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFD6D6), // warna pink lembut
+      backgroundColor: Colors.white, // warna pink lembut
       body: SafeArea(
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Gambar bintang
-              const Icon(
-                Icons.star,
-                color: Color(0xFFFFD300), // warna kuning bintang
-                size: 100,
+              Image.asset(
+                'assets/images/logo.png',
+                width: 300,
+                height: 300, // ubah sesuai ukuran logo kamu
               ),
+
               const SizedBox(height: 40),
 
               // Teks utama

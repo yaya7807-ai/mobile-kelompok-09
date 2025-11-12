@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "91867079033",
+    "project_id": "mywallwet",
+    "storage_bucket": "mywallwet.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:91867079033:android:c0b23fd41d4597823b8fa8",
+        "android_client_info": {
+          "package_name": "com.example.mydompet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_MwNq5AdAM9lxwJS3LwJd2Tcr0sbd9XM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'transaction_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -54,8 +55,14 @@ class HomeScreen extends StatelessWidget {
               // Tombol
               ElevatedButton(
                 onPressed: () {
-                  // aksi ketika tombol ditekan
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TransactionScreen(),
+                    ),
+                  );
                 },
+
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFFD300), // kuning
                   foregroundColor: Colors.black,

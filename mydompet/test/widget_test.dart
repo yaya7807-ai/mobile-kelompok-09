@@ -8,7 +8,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:mydompet/main.dart';
+import 'package:mydompet/transaction_screen.dart';
+import 'package:mydompet/wallet_screen.dart';
+import 'package:mydompet/setting_screen.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {

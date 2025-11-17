@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 // Import file halaman welcome screen yang baru kita buat
+import 'transaction_screen.dart';
 import 'package:mydompet/screens/welcome_screen.dart'; // <-- Ganti 'mydompet' dengan nama proyek Anda
 
 // Fungsi main() sekarang 'async' karena kita perlu 'await' Firebase
@@ -23,11 +24,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MyDompet',
-      debugShowCheckedModeBanner: false, // Menghilangkan banner "Debug"
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white, // Latar belakang putih
+//       title: 'MyDompet',
+//       debugShowCheckedModeBanner: false, // Menghilangkan banner "Debug"
+//       theme: ThemeData(
+//         primarySwatch: Colors.blue,
+//         scaffoldBackgroundColor: Colors.white, // Latar belakang putih
       ),
       // Di sinilah kita memberi tahu aplikasi untuk memulai dengan WelcomeScreen
       home: const WelcomeScreen(),

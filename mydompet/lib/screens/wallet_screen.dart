@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mydompet/report_screen.';
-import 'package:mydompet/setting_screen.dart';
-import 'package:mydompet/transaction_screen.dart';
+import 'package:mydompet/screens/report_screen.dart';
+import 'package:mydompet/screens/setting_screen.dart';
+import 'package:mydompet/screens/transaction_screen.dart';
 
 class WalletScreen extends StatelessWidget {
   const WalletScreen({super.key});
@@ -178,7 +178,7 @@ class WalletScreen extends StatelessWidget {
                 context,
                 Icons.bar_chart,
                 'Rekap',
-                const ReportScreen(),
+                ReportScreen(),
                 false,
               ),
               _navButton(

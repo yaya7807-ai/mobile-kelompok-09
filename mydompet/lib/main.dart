@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-// Import file halaman welcome screen yang baru kita buat
-import 'transaction_screen.dart';
-import 'package:mydompet/screens/welcome_screen.dart'; // <-- Ganti 'mydompet' dengan nama proyek Anda
+// 1. Import file 'firebase_options.dart'
+import 'firebase_options.dart';
 
-// Fungsi main() sekarang 'async' karena kita perlu 'await' Firebase
+// 2. Perbaiki import 'welcome_screen.dart' ke alamat yang benar
+import 'screens/welcome_screen.dart';
+// Baris 'import 'transaction_screen.dart';' dihapus karena tidak dipakai di file ini
+
 Future<void> main() async {
-  // Pastikan semua binding Flutter siap sebelum menjalankan Firebase
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inisialisasi Firebase
-  await Firebase.initializeApp(
-    // options: DefaultFirebaseOptions.currentPlatform, // Jika Anda menggunakan FlutterFire CLI
-  );
+  // 3. Aktifkan 'options' agar Firebase tahu harus konek ke mana
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Menjalankan aplikasi
   runApp(const MyApp());
 }
 
@@ -24,13 +22,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-//       title: 'MyDompet',
-//       debugShowCheckedModeBanner: false, // Menghilangkan banner "Debug"
-//       theme: ThemeData(
-//         primarySwatch: Colors.blue,
-//         scaffoldBackgroundColor: Colors.white, // Latar belakang putih
+      // 4. Kita aktifkan (uncomment) pengaturan tema ini
+      title: 'MyDompet',
+      debugShowCheckedModeBanner: false, // Menghilangkan banner "Debug"
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white, // Latar belakang putih
       ),
-      // Di sinilah kita memberi tahu aplikasi untuk memulai dengan WelcomeScreen
+      // Home sudah benar, mengarah ke WelcomeScreen
       home: const WelcomeScreen(),
     );
   }

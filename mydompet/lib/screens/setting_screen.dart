@@ -1,87 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:mydompet/report_screen.';
-import 'package:mydompet/setting_screen.dart';
-import 'package:mydompet/wallet_screen.dart';
+import 'package:mydompet/screens/report_screen.dart';
+import 'package:mydompet/screens/transaction_screen.dart';
+import 'package:mydompet/screens/wallet_screen.dart';
 
-class TransactionScreen extends StatelessWidget {
-  const TransactionScreen({super.key});
+class SettingScreen extends StatelessWidget {
+  const SettingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // abu-abu muda
+      backgroundColor: Colors.white,
+
       appBar: AppBar(
-        backgroundColor: Colors.yellow, // kuning
+        backgroundColor: Colors.yellow,
         foregroundColor: Colors.black,
-        elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'Min, 02 Nov 2024',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ],
+        centerTitle: true,
+        title: const Text(
+          'Settings',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(icon: const Icon(Icons.download), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.content_copy), onPressed: () {}),
-          const SizedBox(width: 8),
-        ],
       ),
 
-      // Isi utama
-      body: Column(
+      // ISI UTAMA
+      body: ListView(
         children: [
-          // Bagian kartu pemasukan, pengeluaran, selisih
-          Container(
-            color: Colors.yellow,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: const [
-                  _SummaryItem(label: 'Pemasukan', value: '0'),
-                  _SummaryItem(label: 'Pengeluaran', value: '0'),
-                  _SummaryItem(label: 'Selisih', value: '0'),
-                ],
-              ),
-            ),
+          _SettingTile(icon: Icons.restore, label: 'Restore Purchased Items'),
+          _SettingTile(icon: Icons.check_box, label: 'Remove Ads'),
+          _SettingTile(
+            icon: Icons.attach_money,
+            label: 'Show Decimals',
+            trailing: Switch(value: false, onChanged: (val) {}),
           ),
-
-          // Area abu-abu tengah
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 140,
-                    color: Colors.grey,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Tidak ada data',
-                    style: TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          _SettingTile(icon: Icons.backup, label: 'Backup and Restore Data'),
+          _SettingTile(icon: Icons.delete, label: 'Clear Data'),
+          _SettingTile(icon: Icons.notifications, label: 'Reminder'),
+          _SettingTile(icon: Icons.color_lens, label: 'Theme Color'),
+          _SettingTile(icon: Icons.language, label: 'Language'),
         ],
-      ),
-
-      // Tombol tambah
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.white,
-        onPressed: () {},
-        child: const Icon(Icons.add, color: Colors.black),
       ),
 
       // Navigasi bawah (pakai tombol terpisah)
@@ -109,11 +64,11 @@ class TransactionScreen extends StatelessWidget {
                 child: const Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.book, color: Colors.black),
+                    Icon(Icons.book, color: Colors.grey),
                     SizedBox(height: 4),
                     Text(
                       'Transaksi',
-                      style: TextStyle(fontSize: 12, color: Colors.black),
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -149,7 +104,7 @@ class TransactionScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ReportScreen(),
+                      builder: (context) => ReportScreen(),
                     ),
                   );
                 },
@@ -167,25 +122,18 @@ class TransactionScreen extends StatelessWidget {
                 ),
               ),
 
-              // Tombol Setting
+              // Tombol Setting (aktif)
               TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SettingScreen(),
-                    ),
-                  );
-                },
+                onPressed: () {},
                 style: TextButton.styleFrom(foregroundColor: Colors.black),
                 child: const Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.settings, color: Colors.grey),
+                    Icon(Icons.settings, color: Colors.black),
                     SizedBox(height: 4),
                     Text(
                       'Setting',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(fontSize: 12, color: Colors.black),
                     ),
                   ],
                 ),
@@ -198,21 +146,34 @@ class TransactionScreen extends StatelessWidget {
   }
 }
 
-class _SummaryItem extends StatelessWidget {
+class _SettingTile extends StatelessWidget {
+  final IconData icon;
   final String label;
-  final String value;
-  const _SummaryItem({required this.label, required this.value});
+  final Widget? trailing;
+
+  const _SettingTile({required this.icon, required this.label, this.trailing});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, color: Colors.black)),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ListTile(
+          leading: Container(
+            decoration: BoxDecoration(
+              color: Colors.yellow,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.all(8),
+            child: Icon(icon, color: Colors.white),
+          ),
+          title: Text(
+            label,
+            style: const TextStyle(fontSize: 15, color: Colors.black),
+          ),
+          trailing: trailing,
+          onTap: () {},
         ),
+        const Divider(height: 1),
       ],
     );
   }

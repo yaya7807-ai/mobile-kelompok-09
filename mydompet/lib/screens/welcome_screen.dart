@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-// 1. IMPORT file home_screen.dart YANG BARU KITA BUAT
-import 'package:mydompet/screens/home_screen.dart'; // <-- Sesuaikan 'mydompet' dengan nama paket Anda
+// 1. IMPORT file transaction_screen.dart, BUKAN home_screen.dart
+// Kita pakai path relatif (langsung) karena filenya ada di folder yang sama ('screens')
+import 'transaction_screen.dart'; // <-- PERUBAHAN DI SINI
 
 class WelcomeScreen extends StatelessWidget {
-  // ... (kode di atas sini tidak berubah) ...
   const WelcomeScreen({super.key});
 
   @override
@@ -15,10 +15,10 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // ... (Bagian atas: logo dan teks tidak berubah) ...
+              // Bagian atas: logo dan teks
               Column(
                 children: [
-                  // Path-nya langsung dari root proyek
+                  // PASTIKAN kamu sudah setup 'assets/images/logo.png' di pubspec.yaml
                   Image.asset('assets/images/logo.png', width: 200),
                   const SizedBox(height: 16),
                   const SizedBox(height: 24),
@@ -40,15 +40,15 @@ class WelcomeScreen extends StatelessWidget {
                 child: ElevatedButton(
                   // 2. MODIFIKASI BAGIAN INI
                   onPressed: () {
-                    // Ini adalah kode untuk berpindah halaman
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const HomeScreen(),
+                        // Arahkan ke TransactionScreen(), BUKAN HomeScreen()
+                        builder: (context) =>
+                            const TransactionScreen(), // <-- PERUBAHAN DI SINI
                       ),
                     );
                   },
-                  // ... (bagian style: warna, bentuk, dll tidak berubah) ...
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.yellow[700],
                     foregroundColor: Colors.black,

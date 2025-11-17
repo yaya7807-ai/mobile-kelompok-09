@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mydompet/wallet_screen.dart';
-import 'package:mydompet/transaction_screen.dart';
-import 'package:mydompet/setting_screen.dart';
+import 'package:mydompet/screens/wallet_screen.dart';
+import 'package:mydompet/screens/transaction_screen.dart';
+import 'package:mydompet/screens/setting_screen.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -66,13 +66,28 @@ class _ReportScreenState extends State<ReportScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _navButton(context, Icons.book, 'Transaksi',
-                  const TransactionScreen(), false),
-              _navButton(context, Icons.wallet, 'Kantong',
-                  const WalletScreen(), false),
+              _navButton(
+                context,
+                Icons.book,
+                'Transaksi',
+                const TransactionScreen(),
+                false,
+              ),
+              _navButton(
+                context,
+                Icons.wallet,
+                'Kantong',
+                const WalletScreen(),
+                false,
+              ),
               _navButton(context, Icons.bar_chart, 'Rekap', null, true),
-              _navButton(context, Icons.settings, 'Setting',
-                  const SettingScreen(), false),
+              _navButton(
+                context,
+                Icons.settings,
+                'Setting',
+                const SettingScreen(),
+                false,
+              ),
             ],
           ),
         ),
@@ -95,8 +110,9 @@ class _ReportScreenState extends State<ReportScreen> {
             backgroundColor: isSelected ? Colors.yellow : Colors.white,
             foregroundColor: Colors.black,
             side: const BorderSide(color: Colors.black26),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
             elevation: 0,
           ),
           child: Text(label),
@@ -157,8 +173,13 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  Widget _navButton(BuildContext context, IconData icon, String label,
-      Widget? screen, bool active) {
+  Widget _navButton(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Widget? screen,
+    bool active,
+  ) {
     return TextButton(
       onPressed: () {
         if (!active && screen != null) {

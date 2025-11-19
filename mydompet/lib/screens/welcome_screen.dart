@@ -26,7 +26,7 @@ class WelcomeScreen extends StatelessWidget {
                     "KELOLA KEUANGAN\nDAN JANGAN JUDI ONLINE",
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),

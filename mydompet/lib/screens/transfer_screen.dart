@@ -13,10 +13,10 @@ class _TransferScreenState extends State<TransferScreen> {
   TimeOfDay selectedTime = TimeOfDay.now();
 
   final TextEditingController amountController = TextEditingController();
-  final TextEditingController titleController = TextEditingController();
-  final TextEditingController categoryController = TextEditingController();
 
-  String? selectedMethod;
+  /// 🔹 Variabel dropdown
+  String? selectedFrom;
+  String? selectedTo;
 
   final List<String> paymentMethods = [
     "Uang Tunai",
@@ -69,7 +69,7 @@ class _TransferScreenState extends State<TransferScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          "Pengeluaran",
+          "Pindah saldo",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
       ),
@@ -138,7 +138,7 @@ class _TransferScreenState extends State<TransferScreen> {
 
               const SizedBox(height: 15),
 
-              // ================= METODE PEMBAYARAN =================
+              // ================= METODE PENGELUARAN =================
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -151,20 +151,20 @@ class _TransferScreenState extends State<TransferScreen> {
                 ),
                 child: DropdownButtonFormField(
                   decoration: const InputDecoration(border: InputBorder.none),
-                  hint: const Text("Metode Pengeluaran"),
-                  value: selectedMethod,
+                  hint: const Text("Sumber Transfer"),
+                  value: selectedFrom,
                   items: paymentMethods.map((item) {
                     return DropdownMenuItem(value: item, child: Text(item));
                   }).toList(),
                   onChanged: (value) {
-                    setState(() => selectedMethod = value);
+                    setState(() => selectedFrom = value);
                   },
                 ),
               ),
 
               const SizedBox(height: 15),
 
-              // ================= METODE PEMBAYARAN =================
+              // ================= TUJUAN TRANSFER =================
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -178,19 +178,19 @@ class _TransferScreenState extends State<TransferScreen> {
                 child: DropdownButtonFormField(
                   decoration: const InputDecoration(border: InputBorder.none),
                   hint: const Text("Tujuan Transfer"),
-                  value: selectedMethod,
+                  value: selectedTo,
                   items: paymentMethods.map((item) {
                     return DropdownMenuItem(value: item, child: Text(item));
                   }).toList(),
                   onChanged: (value) {
-                    setState(() => selectedMethod = value);
+                    setState(() => selectedTo = value);
                   },
                 ),
               ),
 
               const SizedBox(height: 15),
 
-              // ================= INPUT =================
+              // ================= INPUT JUMLAH =================
               buildTextField("Jumlah", amountController),
               const SizedBox(height: 15),
 
@@ -213,12 +213,12 @@ class _TransferScreenState extends State<TransferScreen> {
                   // ======= KIRIM DATA KE TRANSACTIONSREEN =======
                   onPressed: () {
                     final data = {
-                      "judul": titleController.text,
+                      "judul": "Pindah Saldo",
                       "jumlah": double.tryParse(amountController.text) ?? 0,
-                      "kategori": categoryController.text,
-                      "metode": selectedMethod,
+                      "dari": selectedFrom,
+                      "ke": selectedTo,
                       "tanggal": selectedDate,
-                      "tipe": "pemasukan",
+                      "tipe": "pindah saldo",
                     };
 
                     Navigator.pop(context, data);

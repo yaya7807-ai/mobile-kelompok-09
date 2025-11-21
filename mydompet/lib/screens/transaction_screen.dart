@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mydompet/screens/expense_screen.dart';
+import 'package:mydompet/screens/income_screen.dart';
 import 'package:mydompet/screens/report_screen.dart';
 import 'package:mydompet/screens/setting_screen.dart';
 import 'package:mydompet/screens/transfer_screen.dart';
 import 'package:mydompet/screens/wallet_screen.dart';
-import 'package:mydompet/screens/income_screen.dart';
 
 class TransactionScreen extends StatefulWidget {
   const TransactionScreen({super.key});
@@ -16,6 +16,37 @@ class TransactionScreen extends StatefulWidget {
 
 class _TransactionScreenState extends State<TransactionScreen> {
   DateTime selectedDate = DateTime.now();
+
+  // ================================
+  //   TEMPAT MENYIMPAN TRANSAKSI
+  // ================================
+  List<Map<String, dynamic>> allTransactions = [];
+
+  // ================================
+  //   FILTER TRANSAKSI HARI INI
+  // ================================
+  List<Map<String, dynamic>> get todayTransactions {
+    return allTransactions.where((t) {
+      return t["tanggal"].day == selectedDate.day &&
+          t["tanggal"].month == selectedDate.month &&
+          t["tanggal"].year == selectedDate.year;
+    }).toList();
+  }
+
+  // ================================
+  //   HITUNG REKAP
+  // ================================
+  double get totalIncome {
+    return todayTransactions
+        .where((t) => t["tipe"] == "pemasukan")
+        .fold(0, (sum, t) => sum + t["jumlah"]);
+  }
+
+  double get totalExpense {
+    return todayTransactions
+        .where((t) => t["tipe"] == "pengeluaran")
+        .fold(0, (sum, t) => sum + t["jumlah"]);
+  }
 
   void previousDay() {
     setState(() {
@@ -34,21 +65,61 @@ class _TransactionScreenState extends State<TransactionScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Export PDF"),
-        content: const Text("Export transaksi pada tanggal ini ke PDF?"),
+        content: const Text("Export transaksi pada tanggal ini?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Batal"),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
             child: const Text("Export"),
           ),
         ],
       ),
     );
+  }
+
+  // ================================
+  //     TAMBAH TRANSAKSI BARU
+  // ================================
+  void openIncome() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => IncomeScreen()),
+    );
+
+    if (result != null) {
+      setState(() {
+        allTransactions.add(result);
+      });
+    }
+  }
+
+  void openExpense() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ExpenseScreen()),
+    );
+
+    if (result != null) {
+      setState(() {
+        allTransactions.add(result);
+      });
+    }
+  }
+
+  void openTransfer() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => TransferScreen()),
+    );
+
+    if (result != null) {
+      setState(() {
+        allTransactions.add(result);
+      });
+    }
   }
 
   @override
@@ -65,9 +136,9 @@ class _TransactionScreenState extends State<TransactionScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFD339),
         elevation: 0,
+        centerTitle: true,
         automaticallyImplyLeading: false,
         foregroundColor: Colors.black,
-
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -85,8 +156,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
             ),
           ],
         ),
-        centerTitle: true,
-
         actions: [
           IconButton(
             onPressed: showExportDialog,
@@ -100,58 +169,89 @@ class _TransactionScreenState extends State<TransactionScreen> {
       ),
 
       // ===================== BODY =====================
-      body: GestureDetector(
-        onHorizontalDragEnd: (details) {
-          if (details.primaryVelocity! > 0) {
-            previousDay();
-          } else {
-            nextDay();
-          }
-        },
-
-        child: Column(
-          children: [
-            Container(
-              color: const Color(0xFFFFD339),
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: const [
-                    _SummaryItem(label: 'Pemasukan', value: '0'),
-                    _SummaryItem(label: 'Pengeluaran', value: '0'),
-                    _SummaryItem(label: 'Selisih', value: '0'),
-                  ],
-                ),
+      body: Column(
+        children: [
+          // ===================== SUMMARY =====================
+          Container(
+            color: const Color(0xFFFFD339),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _SummaryItem(
+                    label: "Pemasukan",
+                    value: "Rp ${totalIncome.toStringAsFixed(0)}",
+                  ),
+                  _SummaryItem(
+                    label: "Pengeluaran",
+                    value: "Rp ${totalExpense.toStringAsFixed(0)}",
+                  ),
+                  _SummaryItem(
+                    label: "Selisih",
+                    value:
+                        "Rp ${(totalIncome - totalExpense).toStringAsFixed(0)}",
+                  ),
+                ],
               ),
             ),
+          ),
 
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      size: 130,
-                      color: Colors.grey,
+          // ===================== LIST TRANSAKSI =====================
+          // ===================== LIST TRANSAKSI =====================
+          Expanded(
+            child: todayTransactions.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 130,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          "Tidak ada data",
+                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 6),
-                    Text(
-                      "Tidak ada data",
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+                  )
+                : ListView.builder(
+                    itemCount: todayTransactions.length,
+                    itemBuilder: (context, index) {
+                      final t = todayTransactions[index];
+
+                      // Format tanggal
+                      final formattedDate = DateFormat(
+                        'dd MMM yyyy',
+                        'id_ID',
+                      ).format(t["tanggal"]);
+
+                      return ListTile(
+                        title: Text(t["judul"]),
+                        subtitle: Text("${t["kategori"]} • $formattedDate"),
+                        trailing: Text(
+                          (t["tipe"] == "pemasukan" ? "+ " : "- ") +
+                              t["jumlah"].toString(),
+                          style: TextStyle(
+                            color: t["tipe"] == "pemasukan"
+                                ? Colors.green
+                                : Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
 
       // ===================== FAB =====================
@@ -180,7 +280,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // ➕ Pemasukan
                     ListTile(
                       leading: const Icon(
                         Icons.add_circle_rounded,
@@ -190,16 +289,10 @@ class _TransactionScreenState extends State<TransactionScreen> {
                       title: const Text("Pemasukan"),
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const IncomeScreen(),
-                          ),
-                        );
+                        openIncome();
                       },
                     ),
 
-                    // ➖ Pengeluaran
                     ListTile(
                       leading: const Icon(
                         Icons.remove_circle_rounded,
@@ -209,16 +302,10 @@ class _TransactionScreenState extends State<TransactionScreen> {
                       title: const Text("Pengeluaran"),
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ExpenseScreen(),
-                          ),
-                        );
+                        openExpense();
                       },
                     ),
 
-                    // ↔ Pindah Saldo
                     ListTile(
                       leading: const Icon(
                         Icons.swap_horiz_rounded,
@@ -228,12 +315,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                       title: const Text("Pindah Saldo"),
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const TransferScreen(),
-                          ),
-                        );
+                        openTransfer();
                       },
                     ),
                   ],
@@ -249,7 +331,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
     );
   }
 
-  // Bottom navigation builder
+  // ===================== NAVIGATION BAR =====================
   Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(

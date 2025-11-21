@@ -2,28 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:mydompet/screens/report_screen.dart';
 import 'package:mydompet/screens/setting_screen.dart';
 import 'package:mydompet/screens/transaction_screen.dart';
+import 'package:mydompet/screens/edit_balance_screen.dart';
+import 'package:mydompet/screens/create_pocket_screen.dart';
 
-class WalletScreen extends StatelessWidget {
+class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
 
   @override
+  State<WalletScreen> createState() => _WalletScreenState();
+}
+
+class _WalletScreenState extends State<WalletScreen> {
+  TextEditingController searchController = TextEditingController();
+
+  List<Map<String, dynamic>> wallets = [
+    {'icon': Icons.attach_money, 'name': 'Uang Tunai', 'balance': 120000},
+    {'icon': Icons.account_balance, 'name': 'Rekening', 'balance': 450000},
+    {'icon': Icons.wallet, 'name': 'E-Wallet', 'balance': 220000},
+    {'icon': Icons.add, 'name': 'Buat Kantong', 'balance': null},
+  ];
+
+  String searchQuery = "";
+
+  @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> wallets = [
-      {
-        'icon': Icons.currency_bitcoin,
-        'name': 'Kantong Utama',
-        'balance': 120000,
-      },
-      {'icon': Icons.phone_android, 'name': 'Nabung Iqeng', 'balance': 80000},
-      {
-        'icon': Icons.account_balance_wallet,
-        'name': 'Gopay',
-        'balance': 200000,
-      },
-      {'icon': Icons.monetization_on, 'name': 'Dana', 'balance': 100000},
-      {'icon': Icons.account_balance, 'name': 'BCA', 'balance': 50000},
-      {'icon': Icons.add, 'name': 'Buat Kantong', 'balance': null},
-    ];
+    List<Map<String, dynamic>> filteredWallets = wallets
+        .where(
+          (item) =>
+              item['name'].toLowerCase().contains(searchQuery.toLowerCase()),
+        )
+        .toList();
 
     int totalBalance = wallets
         .where((w) => w['balance'] != null)
@@ -31,10 +39,13 @@ class WalletScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
+
+      // 🔥 Hilangkan tombol back
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(110),
         child: AppBar(
-          backgroundColor: const Color(0xFFFFC107), // warna kuning
+          automaticallyImplyLeading: false,
+          backgroundColor: const Color(0xFFFFC107),
           elevation: 0,
           flexibleSpace: SafeArea(
             child: Padding(
@@ -43,14 +54,20 @@ class WalletScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 10),
+
+                  // 🔍 Search Bar
                   Container(
                     height: 40,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const TextField(
-                      decoration: InputDecoration(
+                    child: TextField(
+                      controller: searchController,
+                      onChanged: (value) {
+                        setState(() => searchQuery = value);
+                      },
+                      decoration: const InputDecoration(
                         hintText: 'Cari Kantong',
                         border: InputBorder.none,
                         prefixIcon: Icon(Icons.search, color: Colors.grey),
@@ -69,7 +86,7 @@ class WalletScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Total Aset Saya
+            // 📌 Total Aset
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
@@ -84,7 +101,7 @@ class WalletScreen extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   Text(
-                    'Rp ${totalBalance.toString()}',
+                    "Rp $totalBalance",
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -95,10 +112,10 @@ class WalletScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Grid of wallets
+            // 🧱 Grid View
             Expanded(
               child: GridView.builder(
-                itemCount: wallets.length,
+                itemCount: filteredWallets.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
@@ -106,15 +123,48 @@ class WalletScreen extends StatelessWidget {
                   childAspectRatio: 1.1,
                 ),
                 itemBuilder: (context, index) {
-                  final wallet = wallets[index];
+                  final wallet = filteredWallets[index];
                   final bool isAdd = wallet['balance'] == null;
 
                   return GestureDetector(
                     onTap: () {
                       if (isAdd) {
-                        // aksi tambah kantong
+                        // ➤ MASUK KE HALAMAN BUAT KANTONG
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreatePocketScreen(
+                              onCreate: (name, balance) {
+                                setState(() {
+                                  wallets.insert(wallets.length - 1, {
+                                    'icon': Icons.wallet,
+                                    'name': name,
+                                    'balance': balance,
+                                  });
+                                });
+                              },
+                            ),
+                          ),
+                        );
+                      } else {
+                        // ➤ MASUK KE HALAMAN EDIT / UPDATE SALDO
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditBalanceScreen(
+                              name: wallet['name'],
+                              balance: wallet['balance'],
+                              onUpdate: (newBalance) {
+                                setState(() {
+                                  wallet['balance'] = newBalance;
+                                });
+                              },
+                            ),
+                          ),
+                        );
                       }
                     },
+
                     child: Container(
                       decoration: BoxDecoration(
                         color: isAdd ? Colors.white : const Color(0xFF00695C),
@@ -155,7 +205,7 @@ class WalletScreen extends StatelessWidget {
         ),
       ),
 
-      // Bottom navigation bar (tetap sama)
+      // 🔻 Bottom Nav
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,

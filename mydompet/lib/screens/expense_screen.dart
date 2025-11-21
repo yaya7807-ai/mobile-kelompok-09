@@ -198,7 +198,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                       "kategori": categoryController.text,
                       "metode": selectedMethod,
                       "tanggal": selectedDate,
-                      "tipe": "pemasukan",
+                      "tipe": "pengeluaran",
                     };
 
                     Navigator.pop(context, data);

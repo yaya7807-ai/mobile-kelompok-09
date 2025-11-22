@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mydompet/screens/expense_screen.dart';
 import 'package:mydompet/screens/income_screen.dart';
-import 'package:mydompet/screens/report_screen.dart';
-import 'package:mydompet/screens/setting_screen.dart';
 import 'package:mydompet/screens/transfer_screen.dart';
 import 'package:mydompet/screens/wallet_screen.dart';
+import 'package:mydompet/screens/report_screen.dart';
+import 'package:mydompet/screens/setting_screen.dart';
+import 'package:mydompet/screens/history_screen.dart';
 
 class TransactionScreen extends StatefulWidget {
   const TransactionScreen({super.key});
@@ -17,13 +18,10 @@ class TransactionScreen extends StatefulWidget {
 class _TransactionScreenState extends State<TransactionScreen> {
   DateTime selectedDate = DateTime.now();
 
-  // ================================
-  //   TEMPAT MENYIMPAN TRANSAKSI
-  // ================================
   List<Map<String, dynamic>> allTransactions = [];
 
   // ================================
-  //   FILTER TRANSAKSI HARI INI
+  //   FILTER TRANSAKSI BERDASARKAN selectedDate
   // ================================
   List<Map<String, dynamic>> get todayTransactions {
     return allTransactions.where((t) {
@@ -33,9 +31,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
     }).toList();
   }
 
-  // ================================
-  //   HITUNG REKAP
-  // ================================
   double get totalIncome {
     return todayTransactions
         .where((t) => t["tipe"] == "pemasukan")
@@ -60,28 +55,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
     });
   }
 
-  void showExportDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Export PDF"),
-        content: const Text("Export transaksi pada tanggal ini?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Batal"),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Export"),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ================================
-  //     TAMBAH TRANSAKSI BARU
+  //     TAMBAH TRANSAKSI — mengikuti selectedDate
   // ================================
   void openIncome() async {
     final result = await Navigator.push(
@@ -90,9 +65,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
     );
 
     if (result != null) {
-      setState(() {
-        allTransactions.add(result);
-      });
+      result["tanggal"] = selectedDate; // FIX
+      setState(() => allTransactions.add(result));
     }
   }
 
@@ -103,9 +77,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
     );
 
     if (result != null) {
-      setState(() {
-        allTransactions.add(result);
-      });
+      result["tanggal"] = selectedDate; // FIX
+      setState(() => allTransactions.add(result));
     }
   }
 
@@ -116,10 +89,37 @@ class _TransactionScreenState extends State<TransactionScreen> {
     );
 
     if (result != null) {
-      setState(() {
-        allTransactions.add(result);
-      });
+      result["tanggal"] = selectedDate; // FIX
+      setState(() => allTransactions.add(result));
     }
+  }
+
+  // ================================
+  //   KONFIRMASI HAPUS
+  // ================================
+  void deleteTransaction(Map<String, dynamic> t) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Hapus Transaksi?"),
+        content: const Text("Transaksi ini akan dihapus secara permanen."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Batal"),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                allTransactions.remove(t);
+              });
+              Navigator.pop(context);
+            },
+            child: const Text("Hapus", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -157,13 +157,20 @@ class _TransactionScreenState extends State<TransactionScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            onPressed: showExportDialog,
-            icon: const Icon(Icons.download_rounded),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.receipt_long_rounded),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        HistoryScreen(allTransactions: allTransactions),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.history),
+            ),
           ),
         ],
       ),
@@ -171,7 +178,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
       // ===================== BODY =====================
       body: Column(
         children: [
-          // ===================== SUMMARY =====================
           Container(
             color: const Color(0xFFFFD339),
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
@@ -202,8 +208,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
             ),
           ),
 
-          // ===================== LIST TRANSAKSI =====================
-          // ===================== LIST TRANSAKSI =====================
           Expanded(
             child: todayTransactions.isEmpty
                 ? Center(
@@ -228,13 +232,13 @@ class _TransactionScreenState extends State<TransactionScreen> {
                     itemBuilder: (context, index) {
                       final t = todayTransactions[index];
 
-                      // Format tanggal
                       final formattedDate = DateFormat(
                         'dd MMM yyyy',
                         'id_ID',
                       ).format(t["tanggal"]);
 
                       return ListTile(
+                        onLongPress: () => deleteTransaction(t),
                         title: Text(t["judul"]),
                         subtitle: Text("${t["kategori"]} • $formattedDate"),
                         trailing: Text(
@@ -254,7 +258,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
         ],
       ),
 
-      // ===================== FAB =====================
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.white,
         child: const Icon(Icons.add, color: Colors.black),
@@ -292,7 +295,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
                         openIncome();
                       },
                     ),
-
                     ListTile(
                       leading: const Icon(
                         Icons.remove_circle_rounded,
@@ -305,7 +307,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
                         openExpense();
                       },
                     ),
-
                     ListTile(
                       leading: const Icon(
                         Icons.swap_horiz_rounded,
@@ -326,12 +327,10 @@ class _TransactionScreenState extends State<TransactionScreen> {
         },
       ),
 
-      // ===================== BOTTOM NAV =====================
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
-  // ===================== NAVIGATION BAR =====================
   Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(

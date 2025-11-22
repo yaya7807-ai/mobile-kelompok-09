@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mydompet/screens/report_screen.dart';
 import 'package:mydompet/screens/transaction_screen.dart';
 import 'package:mydompet/screens/wallet_screen.dart';
+import 'profile_screen.dart';
 
 class SettingScreen extends StatelessWidget {
   const SettingScreen({super.key});
@@ -12,6 +13,7 @@ class SettingScreen extends StatelessWidget {
       backgroundColor: Colors.white,
 
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.yellow,
         foregroundColor: Colors.black,
         centerTitle: true,
@@ -21,122 +23,66 @@ class SettingScreen extends StatelessWidget {
         ),
       ),
 
-      // ISI UTAMA
       body: ListView(
         children: [
-          _SettingTile(icon: Icons.restore, label: 'Restore Purchased Items'),
-          _SettingTile(icon: Icons.check_box, label: 'Remove Ads'),
           _SettingTile(
-            icon: Icons.attach_money,
-            label: 'Show Decimals',
-            trailing: Switch(value: false, onChanged: (val) {}),
+            icon: Icons.person,
+            label: 'Profil',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
           ),
-          _SettingTile(icon: Icons.backup, label: 'Backup and Restore Data'),
-          _SettingTile(icon: Icons.delete, label: 'Clear Data'),
-          _SettingTile(icon: Icons.notifications, label: 'Reminder'),
-          _SettingTile(icon: Icons.color_lens, label: 'Theme Color'),
-          _SettingTile(icon: Icons.language, label: 'Language'),
+          _SettingTile(
+            icon: Icons.logout,
+            label: 'Logout',
+            onTap: () {
+              _showLogoutDialog(context);
+            },
+          ),
         ],
       ),
 
-      // Navigasi bawah (pakai tombol terpisah)
+      // 🔻 Bottom Nav (versi rapi seperti contohmu)
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.black12)),
+          border: Border(top: BorderSide(color: Colors.white)),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // Tombol Transaksi
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TransactionScreen(),
-                    ),
-                  );
-                },
-                style: TextButton.styleFrom(foregroundColor: Colors.black),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.book, color: Colors.grey),
-                    SizedBox(height: 4),
-                    Text(
-                      'Transaksi',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
+              _navButton(
+                context,
+                Icons.book,
+                'Transaksi',
+                const TransactionScreen(),
+                false,
               ),
-
-              // Tombol Kantong
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const WalletScreen(),
-                    ),
-                  );
-                },
-                style: TextButton.styleFrom(foregroundColor: Colors.black),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.wallet, color: Colors.grey),
-                    SizedBox(height: 4),
-                    Text(
-                      'Kantong',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
+              _navButton(
+                context,
+                Icons.wallet,
+                'Kantong',
+                const WalletScreen(),
+                false,
               ),
-
-              // Tombol Rekap
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ReportScreen(),
-                    ),
-                  );
-                },
-                style: TextButton.styleFrom(foregroundColor: Colors.black),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.bar_chart, color: Colors.grey),
-                    SizedBox(height: 4),
-                    Text(
-                      'Rekap',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
+              _navButton(
+                context,
+                Icons.bar_chart,
+                'Rekap',
+                const ReportScreen(),
+                false,
               ),
-
-              // Tombol Setting (aktif)
-              TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(foregroundColor: Colors.black),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.settings, color: Colors.black),
-                    SizedBox(height: 4),
-                    Text(
-                      'Setting',
-                      style: TextStyle(fontSize: 12, color: Colors.black),
-                    ),
-                  ],
-                ),
+              _navButton(
+                context,
+                Icons.settings,
+                'Setting',
+                null, // halaman ini aktif
+                true,
               ),
             ],
           ),
@@ -144,14 +90,77 @@ class SettingScreen extends StatelessWidget {
       ),
     );
   }
+
+  // 🔘 NAV BUTTON — sama persis format seperti contohmu
+  Widget _navButton(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Widget? screen,
+    bool active,
+  ) {
+    return TextButton(
+      onPressed: () {
+        if (!active && screen != null) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+        }
+      },
+      style: TextButton.styleFrom(foregroundColor: Colors.black),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: active ? Colors.black : Colors.grey),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: active ? Colors.black : Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("Konfirmasi"),
+          content: const Text("Apakah Anda ingin logout?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Batal"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Berhasil logout")),
+                );
+              },
+              child: const Text("Logout", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class _SettingTile extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Widget? trailing;
+  final VoidCallback onTap;
 
-  const _SettingTile({required this.icon, required this.label, this.trailing});
+  const _SettingTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -159,19 +168,18 @@ class _SettingTile extends StatelessWidget {
       children: [
         ListTile(
           leading: Container(
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: Colors.yellow,
               borderRadius: BorderRadius.circular(8),
             ),
-            padding: const EdgeInsets.all(8),
-            child: Icon(icon, color: Colors.white),
+            child: Icon(icon, color: Colors.black),
           ),
           title: Text(
             label,
-            style: const TextStyle(fontSize: 15, color: Colors.black),
+            style: const TextStyle(fontSize: 16, color: Colors.black),
           ),
-          trailing: trailing,
-          onTap: () {},
+          onTap: onTap,
         ),
         const Divider(height: 1),
       ],

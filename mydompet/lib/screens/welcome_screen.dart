@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-// 1. IMPORT file transaction_screen.dart, BUKAN home_screen.dart
-// Kita pakai path relatif (langsung) karena filenya ada di folder yang sama ('screens')
-import 'transaction_screen.dart'; // <-- PERUBAHAN DI SINI
+// 1. IMPORT file register_screen.dart
+import 'register_screen.dart'; 
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -38,14 +37,12 @@ class WelcomeScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  // 2. MODIFIKASI BAGIAN INI
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        // Arahkan ke TransactionScreen(), BUKAN HomeScreen()
                         builder: (context) =>
-                            const TransactionScreen(), // <-- PERUBAHAN DI SINI
+                            const RegisterScreen(),
                       ),
                     );
                   },

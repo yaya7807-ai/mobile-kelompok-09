@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // Import intl lagi
 
 class CreatePocketScreen extends StatefulWidget {
-  // Kita tidak butuh callback onCreate lagi karena data langsung ke Firebase
   const CreatePocketScreen({super.key});
 
   @override
@@ -13,11 +13,38 @@ class CreatePocketScreen extends StatefulWidget {
 class _CreatePocketScreenState extends State<CreatePocketScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController balanceController = TextEditingController();
-  bool isLoading = false; // Untuk efek loading saat menyimpan
+  bool isLoading = false;
+
+  // FORMATTER INPUT
+  // Fungsi ini dipanggil setiap kali user mengetik angka
+  void _onBalanceChanged(String value) {
+    // 1. Hapus karakter selain angka (misal titik yg lama)
+    String cleanString = value.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (cleanString.isEmpty) return;
+
+    // 2. Parse ke angka
+    double number = double.parse(cleanString);
+
+    // 3. Format ulang dengan titik
+    String formatted = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: '',
+      decimalDigits: 0,
+    ).format(number);
+
+    // 4. Set teks baru ke controller tanpa memindahkan kursor ke awal
+    balanceController.value = TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
 
   Future<void> savePocket() async {
     final name = nameController.text.trim();
-    final balanceString = balanceController.text.trim();
+    // PENTING: Sebelum simpan, kita harus HAPUS TITIKNYA
+    // "10.000" -> "10000"
+    final balanceString = balanceController.text.replaceAll('.', '');
 
     if (name.isEmpty || balanceString.isEmpty) {
       ScaffoldMessenger.of(
@@ -32,7 +59,7 @@ class _CreatePocketScreenState extends State<CreatePocketScreen> {
       final user = FirebaseAuth.instance.currentUser;
 
       if (user != null) {
-        final int balance = int.parse(balanceString);
+        final int balance = int.parse(balanceString); // Sekarang aman di-parse
 
         await FirebaseFirestore.instance.collection('wallets').add({
           'userId': user.uid,
@@ -42,14 +69,11 @@ class _CreatePocketScreenState extends State<CreatePocketScreen> {
           'createdAt': FieldValue.serverTimestamp(),
         });
 
-        // Cek mounted sebelum navigasi
         if (mounted) {
           Navigator.pop(context);
         }
       }
     } catch (e) {
-      // --- PERBAIKAN DI SINI ---
-      // Kita cek dulu apakah widget masih "mounted" (aktif)
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -79,9 +103,13 @@ class _CreatePocketScreenState extends State<CreatePocketScreen> {
             TextField(
               controller: balanceController,
               keyboardType: TextInputType.number,
+              // Panggil fungsi format saat mengetik
+              onChanged: _onBalanceChanged,
               decoration: const InputDecoration(
                 labelText: "Saldo Awal",
+                hintText: "0",
                 border: OutlineInputBorder(),
+                prefixText: "Rp ", // Tambahkan prefix Rp biar cantik
               ),
             ),
             const SizedBox(height: 30),
@@ -91,7 +119,7 @@ class _CreatePocketScreenState extends State<CreatePocketScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : savePocket,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFC107), // Warna kuning tema
+                  backgroundColor: const Color(0xFFFFC107),
                   foregroundColor: Colors.black,
                 ),
                 child: isLoading

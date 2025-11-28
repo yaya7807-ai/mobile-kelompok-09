@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // 1. IMPORT INI PENTING
 import 'package:mydompet/screens/create_pocket_screen.dart';
 import 'package:mydompet/screens/report_screen.dart';
 import 'package:mydompet/screens/setting_screen.dart';
 import 'package:mydompet/screens/transaction_screen.dart';
-// import 'package:mydompet/screens/edit_balance_screen.dart'; // Aktifkan jika sudah ada
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -18,7 +18,16 @@ class _WalletScreenState extends State<WalletScreen> {
   final TextEditingController searchController = TextEditingController();
   String searchQuery = "";
 
-  // Helper untuk mendapatkan icon berdasarkan string (opsional)
+  // --- FUNGSI FORMAT RUPIAH ---
+  // Fungsi ini mengubah angka 100000 menjadi "100.000"
+  String formatCurrency(num amount) {
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: '',
+      decimalDigits: 0,
+    ).format(amount);
+  }
+
   IconData getIcon(String iconName) {
     switch (iconName) {
       case 'money':
@@ -32,10 +41,9 @@ class _WalletScreenState extends State<WalletScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Ambil User ID
     final user = FirebaseAuth.instance.currentUser;
 
-    // Stream Query: Ambil kantong milik user ini
+    // Aktifkan orderBy lagi jika index sudah ready di Firebase
     final Stream<QuerySnapshot> walletsStream = FirebaseFirestore.instance
         .collection('wallets')
         .where('userId', isEqualTo: user?.uid)
@@ -44,7 +52,6 @@ class _WalletScreenState extends State<WalletScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      // --- APP BAR (Sama seperti sebelumnya) ---
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(110),
         child: AppBar(
@@ -58,7 +65,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 10),
-                  // Search Bar
+                  // --- SEARCH BAR DIPERBAIKI ---
                   Container(
                     height: 40,
                     decoration: BoxDecoration(
@@ -68,11 +75,32 @@ class _WalletScreenState extends State<WalletScreen> {
                     child: TextField(
                       controller: searchController,
                       onChanged: (value) => setState(() => searchQuery = value),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Cari Kantong',
                         border: InputBorder.none,
-                        prefixIcon: Icon(Icons.search, color: Colors.grey),
-                        contentPadding: EdgeInsets.only(top: 8),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Colors.grey,
+                        ),
+                        contentPadding: const EdgeInsets.only(top: 8),
+
+                        // TOMBOL HAPUS (X) MUNCUL JIKA ADA TEKS
+                        suffixIcon: searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.grey,
+                                ),
+                                onPressed: () {
+                                  // 1. Hapus teks di controller
+                                  searchController.clear();
+                                  // 2. Kosongkan variabel pencarian
+                                  setState(() => searchQuery = "");
+                                  // 3. Hilangkan keyboard (unfocus)
+                                  FocusScope.of(context).unfocus();
+                                },
+                              )
+                            : null,
                       ),
                     ),
                   ),
@@ -83,7 +111,6 @@ class _WalletScreenState extends State<WalletScreen> {
         ),
       ),
 
-      // --- BODY DENGAN STREAM BUILDER ---
       body: StreamBuilder<QuerySnapshot>(
         stream: walletsStream,
         builder: (context, snapshot) {
@@ -92,21 +119,16 @@ class _WalletScreenState extends State<WalletScreen> {
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
+            // Kalau masih error index, matikan orderBy sementara
+            return Center(child: Text("Loading..."));
           }
 
-          // 1. Ambil data dari Firebase
           final docs = snapshot.data?.docs ?? [];
-
-          // 2. Hitung Total Aset
           double totalBalance = 0;
 
-          // 3. Konversi data Firebase ke List Objek agar mudah diolah & difilter
           List<Map<String, dynamic>> allWallets = docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             final balance = (data['balance'] ?? 0).toDouble();
-
-            // Tambahkan ke total
             totalBalance += balance;
 
             return {
@@ -117,7 +139,6 @@ class _WalletScreenState extends State<WalletScreen> {
             };
           }).toList();
 
-          // 4. Filter berdasarkan Search Query
           List<Map<String, dynamic>> filteredWallets = allWallets
               .where(
                 (w) => w['name'].toString().toLowerCase().contains(
@@ -151,8 +172,9 @@ class _WalletScreenState extends State<WalletScreen> {
                           fontSize: 16,
                         ),
                       ),
+                      // PANGGIL formatCurrency DISINI
                       Text(
-                        "Rp ${totalBalance.toStringAsFixed(0)}",
+                        "Rp ${formatCurrency(totalBalance)}",
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -163,10 +185,8 @@ class _WalletScreenState extends State<WalletScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 🧱 Grid View (Wallet + Tombol Tambah)
                 Expanded(
                   child: GridView.builder(
-                    // Jumlah item = jumlah kantong + 1 (untuk tombol tambah)
                     itemCount: filteredWallets.length + 1,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
@@ -176,14 +196,10 @@ class _WalletScreenState extends State<WalletScreen> {
                           childAspectRatio: 1.1,
                         ),
                     itemBuilder: (context, index) {
-                      // Logika Tombol "Buat Kantong" (Item Terakhir)
                       if (index == filteredWallets.length) {
                         return _buildAddButton(context);
                       }
-
-                      // Logika Kartu Kantong
-                      final wallet = filteredWallets[index];
-                      return _buildWalletCard(wallet);
+                      return _buildWalletCard(filteredWallets[index]);
                     },
                   ),
                 ),
@@ -192,19 +208,13 @@ class _WalletScreenState extends State<WalletScreen> {
           );
         },
       ),
-
-      // --- BOTTOM NAV (Tetap Sama) ---
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
-  // Widget Kartu Kantong Biasa
   Widget _buildWalletCard(Map<String, dynamic> wallet) {
     return GestureDetector(
-      onTap: () {
-        // Navigasi ke Edit Balance jika diperlukan
-        // Navigator.push(...);
-      },
+      onTap: () {},
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF00695C),
@@ -222,8 +232,9 @@ class _WalletScreenState extends State<WalletScreen> {
                 fontWeight: FontWeight.w600,
               ),
             ),
+            // PANGGIL formatCurrency DISINI JUGA
             Text(
-              "Rp ${wallet['balance'].toStringAsFixed(0)}",
+              "Rp ${formatCurrency(wallet['balance'])}",
               style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ],
@@ -232,7 +243,6 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  // Widget Tombol Tambah
   Widget _buildAddButton(BuildContext context) {
     return GestureDetector(
       onTap: () {
@@ -264,7 +274,7 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  // Widget Bottom Nav (Saya ekstrak biar rapi)
+  // ... (Kode _buildBottomNav dan _navButton sama seperti sebelumnya) ...
   Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(

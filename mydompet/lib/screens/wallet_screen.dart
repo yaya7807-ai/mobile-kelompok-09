@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // 1. IMPORT INI PENTING
+import 'package:intl/intl.dart';
 import 'package:mydompet/screens/create_pocket_screen.dart';
 import 'package:mydompet/screens/report_screen.dart';
 import 'package:mydompet/screens/setting_screen.dart';
@@ -16,10 +16,30 @@ class WalletScreen extends StatefulWidget {
 
 class _WalletScreenState extends State<WalletScreen> {
   final TextEditingController searchController = TextEditingController();
-  String searchQuery = "";
 
-  // --- FUNGSI FORMAT RUPIAH ---
-  // Fungsi ini mengubah angka 100000 menjadi "100.000"
+  // 1. TAMBAHKAN FocusNode UNTUK MENDETEKSI KURSOR
+  final FocusNode _searchFocusNode = FocusNode();
+
+  String searchQuery = "";
+  bool isFocused = false; // Status apakah sedang mengetik
+
+  @override
+  void initState() {
+    super.initState();
+    // Pendengar: Kalau status fokus berubah, update tampilan agar tombol X muncul/hilang
+    _searchFocusNode.addListener(() {
+      setState(() {
+        isFocused = _searchFocusNode.hasFocus;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchFocusNode.dispose(); // Bersihkan memori
+    super.dispose();
+  }
+
   String formatCurrency(num amount) {
     return NumberFormat.currency(
       locale: 'id_ID',
@@ -43,172 +63,178 @@ class _WalletScreenState extends State<WalletScreen> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    // Aktifkan orderBy lagi jika index sudah ready di Firebase
     final Stream<QuerySnapshot> walletsStream = FirebaseFirestore.instance
         .collection('wallets')
         .where('userId', isEqualTo: user?.uid)
         // .orderBy('createdAt', descending: false)
         .snapshots();
 
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(110),
-        child: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: const Color(0xFFFFC107),
-          elevation: 0,
-          flexibleSpace: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 10),
-                  // --- SEARCH BAR DIPERBAIKI ---
-                  Container(
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: TextField(
-                      controller: searchController,
-                      onChanged: (value) => setState(() => searchQuery = value),
-                      decoration: InputDecoration(
-                        hintText: 'Cari Kantong',
-                        border: InputBorder.none,
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: Colors.grey,
-                        ),
-                        contentPadding: const EdgeInsets.only(top: 8),
+    // 2. BUNGKUS SCAFFOLD DENGAN GESTURE DETECTOR
+    // Ini supaya kalau tekan layar kosong, keyboard menutup
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[100],
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(110),
+          child: AppBar(
+            automaticallyImplyLeading: false,
+            backgroundColor: const Color(0xFFFFC107),
+            elevation: 0,
+            flexibleSpace: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 10),
 
-                        // TOMBOL HAPUS (X) MUNCUL JIKA ADA TEKS
-                        suffixIcon: searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.close,
-                                  color: Colors.grey,
-                                ),
-                                onPressed: () {
-                                  // 1. Hapus teks di controller
-                                  searchController.clear();
-                                  // 2. Kosongkan variabel pencarian
-                                  setState(() => searchQuery = "");
-                                  // 3. Hilangkan keyboard (unfocus)
-                                  FocusScope.of(context).unfocus();
-                                },
-                              )
-                            : null,
+                    Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: TextField(
+                        controller: searchController,
+                        focusNode: _searchFocusNode, // 3. PASANG FOCUS NODE
+                        onChanged: (value) =>
+                            setState(() => searchQuery = value),
+                        decoration: InputDecoration(
+                          hintText: 'Cari Kantong',
+                          border: InputBorder.none,
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Colors.grey,
+                          ),
+                          contentPadding: const EdgeInsets.only(top: 8),
+
+                          // 4. LOGIKA TOMBOL X BARU
+                          // Muncul jika: Ada teks ATAU Sedang Fokus (Keyboard muncul)
+                          suffixIcon: (searchQuery.isNotEmpty || isFocused)
+                              ? IconButton(
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.grey,
+                                  ),
+                                  onPressed: () {
+                                    // Hapus teks
+                                    searchController.clear();
+                                    setState(() => searchQuery = "");
+
+                                    // Tutup Keyboard (Hilangkan kursor)
+                                    _searchFocusNode.unfocus();
+                                  },
+                                )
+                              : null,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         ),
+
+        body: StreamBuilder<QuerySnapshot>(
+          stream: walletsStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return const Center(child: Text("Loading..."));
+            }
+
+            final docs = snapshot.data?.docs ?? [];
+            double totalBalance = 0;
+
+            List<Map<String, dynamic>> allWallets = docs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final balance = (data['balance'] ?? 0).toDouble();
+              totalBalance += balance;
+
+              return {
+                'id': doc.id,
+                'name': data['name'] ?? 'Tanpa Nama',
+                'balance': balance,
+                'icon': data['icon'] ?? 'wallet',
+              };
+            }).toList();
+
+            List<Map<String, dynamic>> filteredWallets = allWallets
+                .where(
+                  (w) => w['name'].toString().toLowerCase().contains(
+                    searchQuery.toLowerCase(),
+                  ),
+                )
+                .toList();
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Aset Saya',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          "Rp ${formatCurrency(totalBalance)}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Expanded(
+                    child: GridView.builder(
+                      itemCount: filteredWallets.length + 1,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 1.1,
+                          ),
+                      itemBuilder: (context, index) {
+                        if (index == filteredWallets.length) {
+                          return _buildAddButton(context);
+                        }
+                        return _buildWalletCard(filteredWallets[index]);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        bottomNavigationBar: _buildBottomNav(context),
       ),
-
-      body: StreamBuilder<QuerySnapshot>(
-        stream: walletsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            // Kalau masih error index, matikan orderBy sementara
-            return Center(child: Text("Loading..."));
-          }
-
-          final docs = snapshot.data?.docs ?? [];
-          double totalBalance = 0;
-
-          List<Map<String, dynamic>> allWallets = docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            final balance = (data['balance'] ?? 0).toDouble();
-            totalBalance += balance;
-
-            return {
-              'id': doc.id,
-              'name': data['name'] ?? 'Tanpa Nama',
-              'balance': balance,
-              'icon': data['icon'] ?? 'wallet',
-            };
-          }).toList();
-
-          List<Map<String, dynamic>> filteredWallets = allWallets
-              .where(
-                (w) => w['name'].toString().toLowerCase().contains(
-                  searchQuery.toLowerCase(),
-                ),
-              )
-              .toList();
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 📌 Total Aset Card
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Aset Saya',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      // PANGGIL formatCurrency DISINI
-                      Text(
-                        "Rp ${formatCurrency(totalBalance)}",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                Expanded(
-                  child: GridView.builder(
-                    itemCount: filteredWallets.length + 1,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 1.1,
-                        ),
-                    itemBuilder: (context, index) {
-                      if (index == filteredWallets.length) {
-                        return _buildAddButton(context);
-                      }
-                      return _buildWalletCard(filteredWallets[index]);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-      bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
@@ -232,7 +258,6 @@ class _WalletScreenState extends State<WalletScreen> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            // PANGGIL formatCurrency DISINI JUGA
             Text(
               "Rp ${formatCurrency(wallet['balance'])}",
               style: const TextStyle(color: Colors.white70, fontSize: 12),
@@ -274,7 +299,6 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  // ... (Kode _buildBottomNav dan _navButton sama seperti sebelumnya) ...
   Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(

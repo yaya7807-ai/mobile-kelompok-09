@@ -1,8 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:mydompet/screens/wallet_screen.dart';
 import 'package:mydompet/screens/transaction_screen.dart';
 import 'package:mydompet/screens/setting_screen.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:mydompet/screens/report_detail_screen.dart'; // Pastikan file ini ada
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -14,52 +18,48 @@ class ReportScreen extends StatefulWidget {
 class _ReportScreenState extends State<ReportScreen> {
   String selectedTab = 'Hari Ini';
 
-  // -----------------------------
-  // DATA DUMMY
-  // -----------------------------
-  final Map<String, Color> categoryColors = {
-    'Saldo': Colors.blue,
-    'Internet': Colors.orange,
-    'Belanja Baju': Colors.teal,
-    'Jajan': Colors.grey,
-  };
+  // Helper: Format Rupiah
+  String formatCurrency(num amount) {
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: '',
+      decimalDigits: 0,
+    ).format(amount);
+  }
 
-  final Map<String, double> categoryPercent = {
-    'Saldo': 17,
-    'Internet': 27,
-    'Belanja Baju': 37,
-    'Jajan': 20,
-  };
+  // Helper: Warna Dinamis untuk Kategori (Berdasarkan Hash String)
+  Color getColorForCategory(String category) {
+    final List<Color> colors = [
+      Colors.blue,
+      Colors.red,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.teal,
+      Colors.pink,
+      Colors.amber,
+      Colors.indigo,
+      Colors.brown,
+    ];
+    return colors[category.hashCode.abs() % colors.length];
+  }
 
-  // Data laporan mingguan (dummy)
-  final List<Map<String, dynamic>> weeklyReports = [
-    {
-      "title": "1 Januari - 7 Januari 2025",
-      "income": 1500000,
-      "expense": 850000,
-    },
-    {
-      "title": "8 Januari - 14 Januari 2025",
-      "income": 1800000,
-      "expense": 920000,
-    },
-  ];
-
-  // Data laporan bulanan (dummy)
-  final List<Map<String, dynamic>> monthlyReports = [
-    {"title": "Januari 2025", "income": 3000000, "expense": 2350000},
-    {"title": "Februari 2025", "income": 3200000, "expense": 2400000},
-  ];
-
-  // -----------------------------
-  // BUILD UI
-  // -----------------------------
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    // Ambil SEMUA transaksi user, diurutkan tanggal terbaru
+    // Kita akan filter manual di dalam StreamBuilder sesuai Tab yang dipilih
+    final Stream<QuerySnapshot> transactionStream = FirebaseFirestore.instance
+        .collection('transactions')
+        .where('userId', isEqualTo: user?.uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+
     return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        automaticallyImplyLeading: false, // 🔥 tombol back dihilangkan
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.yellow,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -69,14 +69,26 @@ class _ReportScreenState extends State<ReportScreen> {
         ),
         centerTitle: true,
       ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: transactionStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
 
-      body: Column(
-        children: [
-          _buildTabButtons(),
-          Expanded(child: _buildTabContent()),
-        ],
+          final docs = snapshot.data?.docs ?? [];
+
+          return Column(
+            children: [
+              _buildTabButtons(),
+              Expanded(child: _buildTabContent(docs)),
+            ],
+          );
+        },
       ),
-
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
@@ -100,7 +112,6 @@ class _ReportScreenState extends State<ReportScreen> {
 
   Widget _buildTabButton(String label) {
     final isSelected = selectedTab == label;
-
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -122,57 +133,87 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   // -----------------------------
-  // TAB CONTENT
+  // LOGIKA KONTEN UTAMA
   // -----------------------------
-  Widget _buildTabContent() {
+  Widget _buildTabContent(List<DocumentSnapshot> docs) {
     switch (selectedTab) {
       case 'Hari Ini':
-        return _buildTodayReport();
+        return _buildTodayReport(docs);
       case 'Mingguan':
-        return _buildWeeklyReport();
+        return _buildWeeklyReport(docs);
       case 'Bulanan':
-        return _buildMonthlyReport();
+        return _buildMonthlyReport(docs);
       default:
         return Container();
     }
   }
 
-  // -----------------------------
-  // HARI INI (DUMMY PIECHART)
-  // -----------------------------
-  Widget _buildTodayReport() {
+  // =======================================================================
+  // 1. LAPORAN HARI INI (PIE CHART PENGELUARAN)
+  // =======================================================================
+  Widget _buildTodayReport(List<DocumentSnapshot> docs) {
+    DateTime now = DateTime.now();
+    DateTime startOfDay = DateTime(now.year, now.month, now.day);
+    DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+    // Filter transaksi hari ini & tipe Pengeluaran
+    var todayDocs = docs.where((doc) {
+      DateTime date = (doc['createdAt'] as Timestamp).toDate();
+      return date.isAfter(startOfDay) &&
+          date.isBefore(endOfDay) &&
+          doc['tipe'] == 'pengeluaran';
+    }).toList();
+
+    if (todayDocs.isEmpty) {
+      return const Center(child: Text("Belum ada pengeluaran hari ini"));
+    }
+
+    // Kelompokkan data untuk Pie Chart
+    Map<String, double> categoryTotals = {};
+    double totalExpense = 0;
+
+    for (var doc in todayDocs) {
+      String cat = doc['kategori'] ?? 'Lainnya';
+      double amount = (doc['jumlah'] ?? 0).toDouble();
+
+      categoryTotals[cat] = (categoryTotals[cat] ?? 0) + amount;
+      totalExpense += amount;
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          const Text(
-            "1 Januari 2025",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          Text(
+            DateFormat("d MMMM yyyy", "id_ID").format(now),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
 
+          // PIE CHART
           SizedBox(
             height: 200,
             child: PieChart(
               PieChartData(
-                sections: categoryPercent.entries
-                    .map(
-                      (e) => PieChartSectionData(
-                        color: categoryColors[e.key],
-                        value: e.value,
-                        title: "",
-                        radius: 55,
-                      ),
-                    )
-                    .toList(),
+                sections: categoryTotals.entries.map((e) {
+                  final percentage = (e.value / totalExpense) * 100;
+                  return PieChartSectionData(
+                    color: getColorForCategory(e.key),
+                    value: percentage,
+                    title: "", // Sembunyikan teks di dalam chart biar rapi
+                    radius: 50,
+                  );
+                }).toList(),
+                centerSpaceRadius: 40,
               ),
             ),
           ),
-
           const SizedBox(height: 20),
 
+          // LEGEND LIST
           Column(
-            children: categoryPercent.entries.map((e) {
+            children: categoryTotals.entries.map((e) {
+              final percentage = (e.value / totalExpense) * 100;
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
@@ -184,7 +225,7 @@ class _ReportScreenState extends State<ReportScreen> {
                           width: 14,
                           height: 14,
                           decoration: BoxDecoration(
-                            color: categoryColors[e.key],
+                            color: getColorForCategory(e.key),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -193,7 +234,7 @@ class _ReportScreenState extends State<ReportScreen> {
                       ],
                     ),
                     Text(
-                      "${e.value.toStringAsFixed(0)}%",
+                      "${percentage.toStringAsFixed(1)}% (Rp ${formatCurrency(e.value)})",
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -206,38 +247,121 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  // -----------------------------
-  // MINGGUAN
-  // -----------------------------
-  Widget _buildWeeklyReport() {
-    return SingleChildScrollView(
+  // =======================================================================
+  // 2. LAPORAN BULANAN (GROUP BY MONTH)
+  // =======================================================================
+  Widget _buildMonthlyReport(List<DocumentSnapshot> docs) {
+    // Grouping Logic
+    Map<String, Map<String, double>> monthlyData = {};
+
+    for (var doc in docs) {
+      // Abaikan pindah saldo
+      if (doc['tipe'] == 'pindah_saldo') continue;
+
+      DateTime date = (doc['createdAt'] as Timestamp).toDate();
+      String key = DateFormat(
+        'MMMM yyyy',
+        'id_ID',
+      ).format(date); // Contoh: "Januari 2025"
+
+      if (!monthlyData.containsKey(key)) {
+        monthlyData[key] = {'income': 0, 'expense': 0};
+      }
+
+      double amount = (doc['jumlah'] ?? 0).toDouble();
+      if (doc['tipe'] == 'pemasukan') {
+        monthlyData[key]!['income'] =
+            (monthlyData[key]!['income'] ?? 0) + amount;
+      } else {
+        monthlyData[key]!['expense'] =
+            (monthlyData[key]!['expense'] ?? 0) + amount;
+      }
+    }
+
+    if (monthlyData.isEmpty) {
+      return const Center(child: Text("Belum ada data transaksi"));
+    }
+
+    return ListView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        children: weeklyReports.map((week) {
-          return _buildWeeklyCard(week);
-        }).toList(),
-      ),
+      children: monthlyData.entries.map((entry) {
+        String title = entry.key;
+        double income = entry.value['income']!;
+        double expense = entry.value['expense']!;
+
+        return _buildReportCard(
+          title,
+          income,
+          expense,
+          // Logika sederhana: untuk detail pie chart bulanan,
+          // kita perlu mengirim data spesifik bulan itu.
+          // Untuk sekarang kita kosongkan dulu navigasinya atau kirim data dummy
+          // agar tidak error. Nanti bisa kita kembangkan di ReportDetailScreen.
+          () {
+            // Navigasi ke detail (Future Feature)
+          },
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildWeeklyCard(Map<String, dynamic> data) {
-    final title = data["title"];
-    final income = data["income"];
-    final expense = data["expense"];
+  // =======================================================================
+  // 3. LAPORAN MINGGUAN (GROUP BY WEEK)
+  // =======================================================================
+  Widget _buildWeeklyReport(List<DocumentSnapshot> docs) {
+    Map<String, Map<String, double>> weeklyData = {};
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DetailReportPage(
-              title: title,
-              categoryColors: categoryColors,
-              categoryPercent: categoryPercent,
-            ),
-          ),
+    for (var doc in docs) {
+      if (doc['tipe'] == 'pindah_saldo') continue;
+
+      DateTime date = (doc['createdAt'] as Timestamp).toDate();
+
+      // Cari tanggal awal minggu (Senin)
+      DateTime startOfWeek = date.subtract(Duration(days: date.weekday - 1));
+      DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
+
+      String key =
+          "${DateFormat('d MMM').format(startOfWeek)} - ${DateFormat('d MMM yyyy').format(endOfWeek)}";
+
+      if (!weeklyData.containsKey(key)) {
+        weeklyData[key] = {'income': 0, 'expense': 0};
+      }
+
+      double amount = (doc['jumlah'] ?? 0).toDouble();
+      if (doc['tipe'] == 'pemasukan') {
+        weeklyData[key]!['income'] = (weeklyData[key]!['income'] ?? 0) + amount;
+      } else {
+        weeklyData[key]!['expense'] =
+            (weeklyData[key]!['expense'] ?? 0) + amount;
+      }
+    }
+
+    if (weeklyData.isEmpty) {
+      return const Center(child: Text("Belum ada data transaksi"));
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: weeklyData.entries.map((entry) {
+        return _buildReportCard(
+          entry.key,
+          entry.value['income']!,
+          entry.value['expense']!,
+          () {},
         );
-      },
+      }).toList(),
+    );
+  }
+
+  // WIDGET CARD UMUM
+  Widget _buildReportCard(
+    String title,
+    double income,
+    double expense,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 2,
@@ -256,7 +380,8 @@ class _ReportScreenState extends State<ReportScreen> {
               const SizedBox(height: 12),
               _buildMoneyRow("Pemasukan", income),
               _buildMoneyRow("Pengeluaran", expense),
-              _buildMoneyRow("Selisih", income - expense),
+              const Divider(),
+              _buildMoneyRow("Selisih", income - expense, isBold: true),
             ],
           ),
         ),
@@ -264,80 +389,30 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  // -----------------------------
-  // BULANAN
-  // -----------------------------
-  Widget _buildMonthlyReport() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: monthlyReports.map((month) {
-          return _buildMonthlyCard(month);
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildMonthlyCard(Map<String, dynamic> data) {
-    final title = data["title"];
-    final income = data["income"];
-    final expense = data["expense"];
-
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DetailReportPage(
-              title: title,
-              categoryColors: categoryColors,
-              categoryPercent: categoryPercent,
-            ),
-          ),
-        );
-      },
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 2,
-        margin: const EdgeInsets.only(bottom: 16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _buildMoneyRow("Pemasukan", income),
-              _buildMoneyRow("Pengeluaran", expense),
-              _buildMoneyRow("Selisih", income - expense),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // -----------------------------
-  // Money Row
-  // -----------------------------
-  Widget _buildMoneyRow(String label, int value) {
+  Widget _buildMoneyRow(String label, double value, {bool isBold = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [Text(label), Text(value.toString())],
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          Text(
+            formatCurrency(value),
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // -----------------------------
-  // Bottom Navigation
-  // -----------------------------
+  // --- NAVIGASI BAWAH (Sama seperti sebelumnya) ---
   Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
@@ -399,121 +474,6 @@ class _ReportScreenState extends State<ReportScreen> {
               fontSize: 12,
               color: active ? Colors.black : Colors.grey,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// -----------------------------
-// DETAIL REPORT PAGE
-// -----------------------------
-class DetailReportPage extends StatelessWidget {
-  final String title;
-  final Map<String, Color> categoryColors;
-  final Map<String, double> categoryPercent;
-
-  const DetailReportPage({
-    super.key,
-    required this.title,
-    required this.categoryColors,
-    required this.categoryPercent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: Colors.yellow,
-        foregroundColor: Colors.black,
-      ),
-      body: DetailReportContent(
-        title: title,
-        categoryColors: categoryColors,
-        categoryPercent: categoryPercent,
-      ),
-    );
-  }
-}
-
-// -----------------------------
-// DETAIL CONTENT
-// -----------------------------
-class DetailReportContent extends StatelessWidget {
-  final String title;
-  final Map<String, Color> categoryColors;
-  final Map<String, double> categoryPercent;
-
-  const DetailReportContent({
-    super.key,
-    required this.title,
-    required this.categoryColors,
-    required this.categoryPercent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 20),
-
-          SizedBox(
-            height: 200,
-            child: PieChart(
-              PieChartData(
-                sections: categoryPercent.entries
-                    .map(
-                      (e) => PieChartSectionData(
-                        color: categoryColors[e.key],
-                        value: e.value,
-                        title: "",
-                        radius: 55,
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          Column(
-            children: categoryPercent.entries.map((e) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: categoryColors[e.key],
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(e.key),
-                      ],
-                    ),
-                    Text(
-                      "${e.value.toStringAsFixed(0)}%",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
           ),
         ],
       ),

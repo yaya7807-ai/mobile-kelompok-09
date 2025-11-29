@@ -6,6 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:mydompet/screens/wallet_screen.dart';
 import 'package:mydompet/screens/transaction_screen.dart';
 import 'package:mydompet/screens/setting_screen.dart';
+import 'package:mydompet/screens/report_detail_screen.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -277,35 +278,66 @@ class _ReportScreenState extends State<ReportScreen> {
   // 2. LAPORAN BULANAN
   // =======================================================================
   Widget _buildMonthlyReport(List<DocumentSnapshot> docs) {
-    Map<String, Map<String, double>> monthlyData = {};
+    Map<String, Map<String, dynamic>> monthlyData = {};
+
     for (var doc in docs) {
       if (doc['tipe'] == 'pindah_saldo') continue;
       DateTime date = (doc['createdAt'] as Timestamp).toDate();
+
+      // Hitung Start & End Month
+      DateTime startOfMonth = DateTime(date.year, date.month, 1);
+      DateTime endOfMonth = DateTime(
+        date.year,
+        date.month + 1,
+        0,
+        23,
+        59,
+        59,
+      ); // Hari terakhir bulan ini
+
       String key = DateFormat('MMMM yyyy', 'id_ID').format(date);
-      if (!monthlyData.containsKey(key))
-        monthlyData[key] = {'income': 0, 'expense': 0};
+
+      if (!monthlyData.containsKey(key)) {
+        monthlyData[key] = {
+          'income': 0.0,
+          'expense': 0.0,
+          'start': startOfMonth,
+          'end': endOfMonth,
+        };
+      }
+
       double amount = (doc['jumlah'] ?? 0).toDouble();
       if (doc['tipe'] == 'pemasukan')
-        monthlyData[key]!['income'] =
-            (monthlyData[key]!['income'] ?? 0) + amount;
+        monthlyData[key]!['income'] += amount;
       else
-        monthlyData[key]!['expense'] =
-            (monthlyData[key]!['expense'] ?? 0) + amount;
+        monthlyData[key]!['expense'] += amount;
     }
+
     if (monthlyData.isEmpty)
       return const Center(child: Text("Belum ada data transaksi"));
+
     return ListView(
       padding: const EdgeInsets.all(16),
-      children: monthlyData.entries
-          .map(
-            (entry) => _buildReportCard(
-              entry.key,
-              entry.value['income']!,
-              entry.value['expense']!,
-              () {},
-            ),
-          )
-          .toList(),
+      children: monthlyData.entries.map((entry) {
+        return _buildReportCard(
+          entry.key,
+          entry.value['income'],
+          entry.value['expense'],
+          () {
+            // 🔥 NAVIGASI KE DETAIL 🔥
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ReportDetailScreen(
+                  title: entry.key,
+                  startDate: entry.value['start'],
+                  endDate: entry.value['end'],
+                ),
+              ),
+            );
+          },
+        );
+      }).toList(),
     );
   }
 
@@ -313,37 +345,68 @@ class _ReportScreenState extends State<ReportScreen> {
   // 3. LAPORAN MINGGUAN
   // =======================================================================
   Widget _buildWeeklyReport(List<DocumentSnapshot> docs) {
-    Map<String, Map<String, double>> weeklyData = {};
+    // Key: "1 Jan - 7 Jan", Value: {income, expense, startDate, endDate}
+    Map<String, Map<String, dynamic>> weeklyData = {};
+
     for (var doc in docs) {
       if (doc['tipe'] == 'pindah_saldo') continue;
       DateTime date = (doc['createdAt'] as Timestamp).toDate();
+
+      // Hitung Start & End Week
       DateTime startOfWeek = date.subtract(Duration(days: date.weekday - 1));
-      DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
+      startOfWeek = DateTime(
+        startOfWeek.year,
+        startOfWeek.month,
+        startOfWeek.day,
+      ); // Jam 00:00
+      DateTime endOfWeek = startOfWeek.add(
+        const Duration(days: 6, hours: 23, minutes: 59),
+      );
+
       String key =
           "${DateFormat('d MMM').format(startOfWeek)} - ${DateFormat('d MMM yyyy').format(endOfWeek)}";
-      if (!weeklyData.containsKey(key))
-        weeklyData[key] = {'income': 0, 'expense': 0};
+
+      if (!weeklyData.containsKey(key)) {
+        weeklyData[key] = {
+          'income': 0.0,
+          'expense': 0.0,
+          'start': startOfWeek,
+          'end': endOfWeek,
+        };
+      }
+
       double amount = (doc['jumlah'] ?? 0).toDouble();
       if (doc['tipe'] == 'pemasukan')
-        weeklyData[key]!['income'] = (weeklyData[key]!['income'] ?? 0) + amount;
+        weeklyData[key]!['income'] += amount;
       else
-        weeklyData[key]!['expense'] =
-            (weeklyData[key]!['expense'] ?? 0) + amount;
+        weeklyData[key]!['expense'] += amount;
     }
+
     if (weeklyData.isEmpty)
       return const Center(child: Text("Belum ada data transaksi"));
+
     return ListView(
       padding: const EdgeInsets.all(16),
-      children: weeklyData.entries
-          .map(
-            (entry) => _buildReportCard(
-              entry.key,
-              entry.value['income']!,
-              entry.value['expense']!,
-              () {},
-            ),
-          )
-          .toList(),
+      children: weeklyData.entries.map((entry) {
+        return _buildReportCard(
+          entry.key,
+          entry.value['income'],
+          entry.value['expense'],
+          () {
+            // 🔥 NAVIGASI KE DETAIL 🔥
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ReportDetailScreen(
+                  title: entry.key,
+                  startDate: entry.value['start'],
+                  endDate: entry.value['end'],
+                ),
+              ),
+            );
+          },
+        );
+      }).toList(),
     );
   }
 

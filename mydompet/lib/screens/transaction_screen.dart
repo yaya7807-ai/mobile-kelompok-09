@@ -24,7 +24,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
   String formatCurrency(num amount) {
     return NumberFormat.currency(
       locale: 'id_ID',
-      symbol: 'Rp ',
+      symbol: '',
       decimalDigits: 0,
     ).format(amount);
   }
@@ -40,8 +40,34 @@ class _TransactionScreenState extends State<TransactionScreen> {
     setState(() => selectedDate = selectedDate.add(const Duration(days: 1)));
   }
 
+  // --- PILIH TANGGAL (DATE PICKER) ---
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFFFD339),
+              onPrimary: Colors.black,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
+
   // --- FUNGSI BUKA HALAMAN ---
-  // Tidak perlu setState manual lagi karena StreamBuilder akan otomatis update
   void openIncome() {
     Navigator.push(
       context,
@@ -64,18 +90,18 @@ class _TransactionScreenState extends State<TransactionScreen> {
   }
 
   // --- HAPUS TRANSAKSI ---
-  // Kita harus menghapus data di database, bukan di list lokal
   void deleteTransaction(
     String docId,
     double amount,
     String type,
     String walletId,
+    String? toWalletId,
   ) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Hapus Transaksi?"),
-        content: const Text("Saldo kantong juga akan dikembalikan."),
+        content: const Text("Saldo kantong akan dikembalikan."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -83,37 +109,45 @@ class _TransactionScreenState extends State<TransactionScreen> {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // Tutup dialog dulu
-
-              // 1. Jalankan Logic Hapus & Kembalikan Saldo
-              final walletRef = FirebaseFirestore.instance
-                  .collection('wallets')
-                  .doc(walletId);
+              Navigator.pop(context);
 
               await FirebaseFirestore.instance.runTransaction((
                 transaction,
               ) async {
-                // A. Baca saldo dompet saat ini
-                DocumentSnapshot walletSnapshot = await transaction.get(
-                  walletRef,
-                );
-                if (walletSnapshot.exists) {
-                  int currentBalance = walletSnapshot['balance'];
+                DocumentReference walletRef = FirebaseFirestore.instance
+                    .collection('wallets')
+                    .doc(walletId);
+                DocumentSnapshot walletSnap = await transaction.get(walletRef);
 
-                  // B. Kembalikan saldo (Kebalikan dari tipe transaksi)
-                  // Kalau Pemasukan dihapus -> Saldo BERKURANG
-                  // Kalau Pengeluaran dihapus -> Saldo BERTAMBAH
-                  int newBalance = currentBalance;
-                  if (type == 'pemasukan') {
-                    newBalance -= amount.toInt();
-                  } else if (type == 'pengeluaran') {
-                    newBalance += amount.toInt();
-                  }
+                if (walletSnap.exists) {
+                  int currentBal = walletSnap['balance'];
+                  int newBal = currentBal;
 
-                  transaction.update(walletRef, {'balance': newBalance});
+                  if (type == 'pemasukan')
+                    newBal -= amount.toInt();
+                  else if (type == 'pengeluaran')
+                    newBal += amount.toInt();
+                  else if (type == 'pindah_saldo')
+                    newBal += amount.toInt();
+
+                  transaction.update(walletRef, {'balance': newBal});
                 }
 
-                // C. Hapus dokumen transaksi
+                if (type == 'pindah_saldo' && toWalletId != null) {
+                  DocumentReference toWalletRef = FirebaseFirestore.instance
+                      .collection('wallets')
+                      .doc(toWalletId);
+                  DocumentSnapshot toWalletSnap = await transaction.get(
+                    toWalletRef,
+                  );
+                  if (toWalletSnap.exists) {
+                    int toCurrentBal = toWalletSnap['balance'];
+                    transaction.update(toWalletRef, {
+                      'balance': toCurrentBal - amount.toInt(),
+                    });
+                  }
+                }
+
                 transaction.delete(
                   FirebaseFirestore.instance
                       .collection('transactions')
@@ -140,8 +174,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
       'id_ID',
     ).format(selectedDate);
 
-    // Filter tanggal untuk query Firebase
-    // Kita ambil data dari jam 00:00:00 sampai 23:59:59 pada selectedDate
     DateTime startOfDay = DateTime(
       selectedDate.year,
       selectedDate.month,
@@ -167,11 +199,13 @@ class _TransactionScreenState extends State<TransactionScreen> {
           isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
         )
         .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-        .orderBy('createdAt', descending: true) // Urutkan dari yang terbaru
+        .orderBy('createdAt', descending: true)
         .snapshots();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
+
+      // ===================== APPBAR DIPERBAIKI =====================
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFD339),
         elevation: 0,
@@ -179,16 +213,32 @@ class _TransactionScreenState extends State<TransactionScreen> {
         automaticallyImplyLeading: false,
         foregroundColor: Colors.black,
         title: Row(
+          // KITA KEMBALIKAN KE CENTER SUPAYA TIDAK OVERFLOW (ERROR)
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
               onPressed: previousDay,
               icon: const Icon(Icons.chevron_left),
             ),
-            Text(
-              formattedDate,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+
+            // KLIK TANGGAL
+            GestureDetector(
+              onTap: _selectDate,
+              child: Row(
+                children: [
+                  Text(
+                    formattedDate,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_drop_down, size: 20),
+                ],
+              ),
             ),
+
             IconButton(
               onPressed: nextDay,
               icon: const Icon(Icons.chevron_right),
@@ -196,158 +246,132 @@ class _TransactionScreenState extends State<TransactionScreen> {
           ],
         ),
         actions: [
-          // Untuk history nanti, sementara saya matikan passing parameter allTransactions
+          // SISA ICON REKAP SAJA (ICON DOWNLOAD SUDAH DIHAPUS)
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: IconButton(
-              onPressed: () {
-                // Navigator.push... (HistoryScreen logic needs update later)
-              },
-              icon: const Icon(Icons.history),
+              onPressed: () {}, // Nanti dihubungkan ke halaman Report/History
+              icon: const Icon(Icons.description),
             ),
           ),
         ],
       ),
 
-      // ============ BODY DENGAN STREAM BUILDER ============
-      body: StreamBuilder<QuerySnapshot>(
-        stream: transactionStream,
-        builder: (context, snapshot) {
-          // --- CALCULATE SUMMARY ---
-          double income = 0;
-          double expense = 0;
-          List<DocumentSnapshot> docs = [];
+      // ===================== BODY =====================
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity! > 0) {
+            previousDay();
+          } else if (details.primaryVelocity! < 0) {
+            nextDay();
+          }
+        },
+        child: StreamBuilder<QuerySnapshot>(
+          stream: transactionStream,
+          builder: (context, snapshot) {
+            double income = 0;
+            double expense = 0;
+            List<DocumentSnapshot> docs = [];
 
-          if (snapshot.hasData) {
-            docs = snapshot.data!.docs;
-            for (var doc in docs) {
-              Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-              double amount = (data['jumlah'] ?? 0).toDouble();
-              if (data['tipe'] == 'pemasukan') {
-                income += amount;
-              } else if (data['tipe'] == 'pengeluaran') {
-                expense += amount;
+            if (snapshot.hasData) {
+              docs = snapshot.data!.docs;
+              for (var doc in docs) {
+                Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+                double amount = (data['jumlah'] ?? 0).toDouble();
+
+                if (data['tipe'] == 'pemasukan')
+                  income += amount;
+                else if (data['tipe'] == 'pengeluaran')
+                  expense += amount;
               }
             }
-          }
 
-          return Column(
-            children: [
-              // HEADER SUMMARY
-              Container(
-                color: const Color(0xFFFFD339),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 12,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _SummaryItem(
-                        label: "Pemasukan",
-                        value: formatCurrency(income),
-                        color: Colors.green,
-                      ),
-                      _SummaryItem(
-                        label: "Pengeluaran",
-                        value: formatCurrency(expense),
-                        color: Colors.red,
-                      ),
-                      _SummaryItem(
-                        label: "Selisih",
-                        value: formatCurrency(income - expense),
-                        color: Colors.black,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // LIST TRANSAKSI
-              Expanded(
-                child: docs.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              size: 100,
-                              color: Colors.grey,
-                            ),
-                            SizedBox(height: 10),
-                            Text(
-                              "Belum ada transaksi hari ini",
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          ],
+            return Column(
+              children: [
+                // HEADER SUMMARY
+                Container(
+                  color: const Color(0xFFFFD339),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _SummaryItem(
+                          label: "Pemasukan",
+                          value: "+${formatCurrency(income)}",
+                          color: Colors.green,
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: docs.length,
-                        itemBuilder: (context, index) {
-                          var doc = docs[index];
-                          Map<String, dynamic> data =
-                              doc.data() as Map<String, dynamic>;
+                        _SummaryItem(
+                          label: "Pengeluaran",
+                          value: formatCurrency(expense),
+                          color: Colors.black87,
+                        ),
+                        _SummaryItem(
+                          label: "Selisih",
+                          value: (income - expense) >= 0
+                              ? "+${formatCurrency(income - expense)}"
+                              : formatCurrency(income - expense),
+                          color: Colors.green,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
-                          // Convert timestamp to DateTime
-                          DateTime date = (data['createdAt'] as Timestamp)
-                              .toDate();
-                          String timeStr = DateFormat('HH:mm').format(date);
-
-                          return ListTile(
-                            onLongPress: () => deleteTransaction(
-                              doc.id,
-                              (data['jumlah'] as num).toDouble(),
-                              data['tipe'],
-                              data['walletId'],
+                // LIST TRANSAKSI
+                Expanded(
+                  child: Container(
+                    color: Colors.white,
+                    child: docs.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(
+                                  Icons.receipt_long,
+                                  size: 80,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  "Belum ada transaksi",
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ],
                             ),
-                            leading: CircleAvatar(
-                              backgroundColor: data['tipe'] == 'pemasukan'
-                                  ? Colors.green[100]
-                                  : Colors.red[100],
-                              child: Icon(
-                                data['tipe'] == 'pemasukan'
-                                    ? Icons.arrow_downward
-                                    : Icons.arrow_upward,
-                                color: data['tipe'] == 'pemasukan'
-                                    ? Colors.green
-                                    : Colors.red,
-                              ),
-                            ),
-                            title: Text(data['judul'] ?? 'Tanpa Judul'),
-                            subtitle: Text("${data['walletName']} • $timeStr"),
-                            trailing: Text(
-                              (data['tipe'] == 'pemasukan' ? "+ " : "- ") +
-                                  formatCurrency(data['jumlah']),
-                              style: TextStyle(
-                                color: data['tipe'] == 'pemasukan'
-                                    ? Colors.green
-                                    : Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          );
-        },
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: docs.length,
+                            separatorBuilder: (context, index) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              var doc = docs[index];
+                              Map<String, dynamic> data =
+                                  doc.data() as Map<String, dynamic>;
+                              return _buildTransactionItem(doc.id, data);
+                            },
+                          ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.white,
         child: const Icon(Icons.add, color: Colors.black),
         onPressed: () {
-          // ... (KODE MODAL BOTTOM SHEET SAMA SEPERTI SEBELUMNYA) ...
-          // Copy Paste bagian showModalBottomSheet kamu yang lama di sini
           showModalBottomSheet(
             context: context,
             shape: const RoundedRectangleBorder(
@@ -355,7 +379,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
             ),
             builder: (context) {
               return SizedBox(
-                height: 230,
+                height: 250,
                 child: Column(
                   children: [
                     const SizedBox(height: 12),
@@ -368,10 +392,9 @@ class _TransactionScreenState extends State<TransactionScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
                     ListTile(
                       leading: const Icon(
-                        Icons.add_circle_rounded,
+                        Icons.arrow_downward_rounded,
                         size: 28,
                         color: Colors.green,
                       ),
@@ -383,7 +406,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                     ),
                     ListTile(
                       leading: const Icon(
-                        Icons.remove_circle_rounded,
+                        Icons.arrow_upward_rounded,
                         size: 28,
                         color: Colors.red,
                       ),
@@ -416,7 +439,82 @@ class _TransactionScreenState extends State<TransactionScreen> {
     );
   }
 
-  // ... (KODE _buildBottomNav dan _navItem SAMA SEPERTI SEBELUMNYA) ...
+  Widget _buildTransactionItem(String docId, Map<String, dynamic> data) {
+    String type = data['tipe'];
+    double amount = (data['jumlah'] ?? 0).toDouble();
+    String title = data['judul'] ?? 'Tanpa Judul';
+    String category = data['kategori'] ?? '';
+
+    Color amountColor = Colors.black;
+    String amountPrefix = "";
+    String subtitle = category;
+
+    if (type == 'pemasukan') {
+      amountColor = Colors.green;
+      amountPrefix = "+";
+    } else if (type == 'pengeluaran') {
+      amountColor = Colors.black87;
+      amountPrefix = "-";
+    } else if (type == 'pindah_saldo') {
+      amountColor = Colors.black54;
+      String from = data['walletName'] ?? '?';
+      String to = data['toWalletName'] ?? '?';
+      subtitle = "$from \u2192 $to";
+    }
+
+    return InkWell(
+      onLongPress: () => deleteTransaction(
+        docId,
+        amount,
+        type,
+        data['walletId'],
+        data['toWalletId'],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+
+            Row(
+              children: [
+                Text(
+                  "$amountPrefix${formatCurrency(amount)}",
+                  style: TextStyle(
+                    color: amountColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
@@ -476,12 +574,12 @@ class _SummaryItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 14)),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         const SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.bold,
             color: color,
           ),

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mydompet/screens/edit_transaction_screen.dart'; // 1. IMPORT HALAMAN EDIT
 import 'package:mydompet/screens/expense_screen.dart';
 import 'package:mydompet/screens/income_screen.dart';
 import 'package:mydompet/screens/transfer_screen.dart';
@@ -205,7 +206,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
 
-      // ===================== APPBAR DIPERBAIKI =====================
+      // ===================== APPBAR =====================
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFD339),
         elevation: 0,
@@ -213,15 +214,12 @@ class _TransactionScreenState extends State<TransactionScreen> {
         automaticallyImplyLeading: false,
         foregroundColor: Colors.black,
         title: Row(
-          // KITA KEMBALIKAN KE CENTER SUPAYA TIDAK OVERFLOW (ERROR)
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
               onPressed: previousDay,
               icon: const Icon(Icons.chevron_left),
             ),
-
-            // KLIK TANGGAL
             GestureDetector(
               onTap: _selectDate,
               child: Row(
@@ -238,7 +236,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 ],
               ),
             ),
-
             IconButton(
               onPressed: nextDay,
               icon: const Icon(Icons.chevron_right),
@@ -246,11 +243,10 @@ class _TransactionScreenState extends State<TransactionScreen> {
           ],
         ),
         actions: [
-          // SISA ICON REKAP SAJA (ICON DOWNLOAD SUDAH DIHAPUS)
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: IconButton(
-              onPressed: () {}, // Nanti dihubungkan ke halaman Report/History
+              onPressed: () {},
               icon: const Icon(Icons.description),
             ),
           ),
@@ -439,6 +435,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
     );
   }
 
+  // --- WIDGET ITEM TRANSAKSI ---
   Widget _buildTransactionItem(String docId, Map<String, dynamic> data) {
     String type = data['tipe'];
     double amount = (data['jumlah'] ?? 0).toDouble();
@@ -463,6 +460,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
     }
 
     return InkWell(
+      // 1. Long Press tetap Hapus Cepat (Opsional)
       onLongPress: () => deleteTransaction(
         docId,
         amount,
@@ -470,6 +468,20 @@ class _TransactionScreenState extends State<TransactionScreen> {
         data['walletId'],
         data['toWalletId'],
       ),
+
+      // 2. Tap Biasa -> Buka Halaman Edit [BAGIAN BARU]
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EditTransactionScreen(
+              docId: docId,
+              data: data, // Kirim seluruh data transaksi
+            ),
+          ),
+        );
+      },
+
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(

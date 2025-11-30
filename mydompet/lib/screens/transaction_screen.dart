@@ -246,8 +246,14 @@ class _TransactionScreenState extends State<TransactionScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.description),
+              onPressed: () {
+                // NAVIGASI KE HISTORY SCREEN
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                );
+              },
+              icon: const Icon(Icons.history), // Ikon Jam/History
             ),
           ),
         ],

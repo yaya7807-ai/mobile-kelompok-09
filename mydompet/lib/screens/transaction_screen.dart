@@ -19,12 +19,10 @@ class TransactionScreen extends StatefulWidget {
   State<TransactionScreen> createState() => _TransactionScreenState();
 }
 
-// 1. TAMBAHKAN SingleTickerProviderStateMixin UNTUK ANIMASI
 class _TransactionScreenState extends State<TransactionScreen>
     with SingleTickerProviderStateMixin {
   DateTime selectedDate = DateTime.now();
 
-  // --- VARIABEL ANIMASI MENU ---
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _rotateAnimation;
@@ -33,21 +31,21 @@ class _TransactionScreenState extends State<TransactionScreen>
   @override
   void initState() {
     super.initState();
-    // Inisialisasi Controller Animasi
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 250), // Kecepatan animasi
+      duration: const Duration(milliseconds: 300),
     );
 
-    // Animasi Fade In/Out
     _fadeAnimation = CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeOut,
+      curve: Curves.fastOutSlowIn,
     );
 
-    // Animasi Putar Icon Plus (jadi X)
     _rotateAnimation = Tween<double>(begin: 0.0, end: 0.125).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOutCubic,
+      ),
     );
   }
 
@@ -57,7 +55,6 @@ class _TransactionScreenState extends State<TransactionScreen>
     super.dispose();
   }
 
-  // Fungsi Toggle Menu (Buka/Tutup)
   void _toggleMenu() {
     if (isMenuOpen) {
       _animationController.reverse();
@@ -69,7 +66,6 @@ class _TransactionScreenState extends State<TransactionScreen>
     });
   }
 
-  // Fungsi Menutup Menu (dipanggil saat item diklik)
   void _closeMenu() {
     _animationController.reverse();
     setState(() {
@@ -112,7 +108,6 @@ class _TransactionScreenState extends State<TransactionScreen>
       setState(() => selectedDate = picked);
   }
 
-  // --- NAVIGATION ---
   void openIncome() {
     _closeMenu();
     Navigator.push(
@@ -244,62 +239,60 @@ class _TransactionScreenState extends State<TransactionScreen>
         .orderBy('createdAt', descending: true)
         .snapshots();
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFFD339),
-        elevation: 0,
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        foregroundColor: Colors.black,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              onPressed: previousDay,
-              icon: const Icon(Icons.chevron_left),
-            ),
-            GestureDetector(
-              onTap: _selectDate,
-              child: Row(
-                children: [
-                  Text(
-                    formattedDate,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: const Color(0xFFF5F5F5),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFFFFD339),
+            elevation: 0,
+            centerTitle: true,
+            automaticallyImplyLeading: false,
+            foregroundColor: Colors.black,
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  onPressed: previousDay,
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                GestureDetector(
+                  onTap: _selectDate,
+                  child: Row(
+                    children: [
+                      Text(
+                        formattedDate,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_drop_down, size: 20),
+                    ],
                   ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.arrow_drop_down, size: 20),
-                ],
+                ),
+                IconButton(
+                  onPressed: nextDay,
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: IconButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                  ),
+                  icon: const Icon(Icons.history),
+                ),
               ),
-            ),
-            IconButton(
-              onPressed: nextDay,
-              icon: const Icon(Icons.chevron_right),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: IconButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const HistoryScreen()),
-              ),
-              icon: const Icon(Icons.history),
-            ),
+            ],
           ),
-        ],
-      ),
 
-      // 🔥 MENGGUNAKAN STACK UNTUK CUSTOM MENU 🔥
-      body: Stack(
-        children: [
-          // LAYER 1: KONTEN UTAMA (LIST TRANSAKSI)
-          GestureDetector(
+          body: GestureDetector(
             onHorizontalDragEnd: (details) {
               if (details.primaryVelocity! > 0)
                 previousDay();
@@ -390,8 +383,8 @@ class _TransactionScreenState extends State<TransactionScreen>
                                   top: 16,
                                   left: 16,
                                   right: 16,
-                                  bottom: 80,
-                                ), // Bottom padding extra untuk FAB
+                                  bottom: 150,
+                                ),
                                 itemCount: docs.length,
                                 separatorBuilder: (context, index) =>
                                     const Divider(height: 1),
@@ -409,80 +402,71 @@ class _TransactionScreenState extends State<TransactionScreen>
               },
             ),
           ),
+          bottomNavigationBar: _buildBottomNav(context),
+        ),
 
-          // LAYER 2: LATAR GELAP/BLUR (Hanya muncul jika menu terbuka)
-          if (isMenuOpen)
-            GestureDetector(
+        // LAYER 2: LATAR PUTIH TRANSPARAN
+        if (isMenuOpen)
+          Positioned.fill(
+            child: GestureDetector(
               onTap: _closeMenu,
-              child: Container(
-                color: Colors.white.withOpacity(
-                  0.9,
-                ), // Latar Putih Transparan seperti di gambar
-                width: double.infinity,
-                height: double.infinity,
-              ),
-            ),
-
-          // LAYER 3: MENU ITEMS (ANIMASI DARI BAWAH KE ATAS)
-          Positioned(
-            right: 24, // Rata kanan
-            bottom: 100, // Di atas FAB utama
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // Item 1: Pindah Saldo (Gold) - Index 2 (Paling atas)
-                _buildAnimatedMenuItem(
-                  index: 2,
-                  label: "Pindah Saldo",
-                  iconSvg: "money-bill-transfer-solid-full",
-                  color: const Color(0xFFA08D45),
-                  onTap: openTransfer,
-                ),
-                const SizedBox(height: 20),
-
-                // Item 2: Pemasukan (Hijau Teal) - Index 1
-                _buildAnimatedMenuItem(
-                  index: 1,
-                  label: "Pemasukan",
-                  iconSvg: "hand-holding-dollar-solid-full",
-                  color: const Color(0xFF006064),
-                  onTap: openIncome,
-                ),
-                const SizedBox(height: 20),
-
-                // Item 3: Pengeluaran (Cyan) - Index 0 (Paling bawah)
-                _buildAnimatedMenuItem(
-                  index: 0,
-                  label: "Pengeluaran",
-                  iconSvg: "basket-shopping-solid-full",
-                  color: const Color(0xFF00ACC1),
-                  onTap: openExpense,
-                ),
-              ],
+              child: Container(color: Colors.white.withOpacity(0.92)),
             ),
           ),
 
-          // LAYER 4: MAIN FAB (TOMBOL UTAMA)
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: FloatingActionButton(
-              onPressed: _toggleMenu,
-              backgroundColor: Colors.white,
-              elevation: 4,
-              child: RotationTransition(
-                turns: _rotateAnimation,
-                child: const Icon(Icons.add, color: Colors.black, size: 32),
+        // LAYER 3: MENU ITEMS (Posisi Disesuaikan)
+        Positioned(
+          right: 24,
+          bottom: 160,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _buildAnimatedMenuItem(
+                index: 2,
+                label: "Pindah Saldo",
+                iconSvg: "money-bill-transfer-solid-full",
+                color: const Color(0xFFA08D45),
+                onTap: openTransfer,
               ),
+              const SizedBox(height: 20),
+              _buildAnimatedMenuItem(
+                index: 1,
+                label: "Pemasukan",
+                iconSvg: "hand-holding-dollar-solid-full",
+                color: const Color(0xFF006064),
+                onTap: openIncome,
+              ),
+              const SizedBox(height: 20),
+              _buildAnimatedMenuItem(
+                index: 0,
+                label: "Pengeluaran",
+                iconSvg: "basket-shopping-solid-full",
+                color: const Color(0xFF00ACC1),
+                onTap: openExpense,
+              ),
+            ],
+          ),
+        ),
+
+        // LAYER 4: MAIN FAB
+        Positioned(
+          right: 26,
+          bottom: 90,
+          child: FloatingActionButton(
+            onPressed: _toggleMenu,
+            backgroundColor: Colors.white,
+            elevation: 4,
+            child: RotationTransition(
+              turns: _rotateAnimation,
+              child: const Icon(Icons.add, color: Colors.black, size: 32),
             ),
           ),
-        ],
-      ),
-      bottomNavigationBar: _buildBottomNav(context),
+        ),
+      ],
     );
   }
 
-  // WIDGET ITEM MENU DENGAN ANIMASI
+  // 🔥 UPDATE DI SINI (Menambahkan Material Widget untuk Label) 🔥
   Widget _buildAnimatedMenuItem({
     required int index,
     required String label,
@@ -490,21 +474,17 @@ class _TransactionScreenState extends State<TransactionScreen>
     required Color color,
     required VoidCallback onTap,
   }) {
-    // Membuat delay sedikit antara item (staggered animation)
     final double startInterval = index * 0.1;
-    final double endInterval = startInterval + 0.6; // Durasi animasi per item
+    final double endInterval = startInterval + 0.6;
 
     final Animation<Offset> slideAnimation =
-        Tween<Offset>(
-          begin: const Offset(0, 0.5), // Mulai dari sedikit di bawah
-          end: Offset.zero, // Berakhir di posisi aslinya
-        ).animate(
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
           CurvedAnimation(
             parent: _animationController,
             curve: Interval(
               startInterval,
               endInterval > 1.0 ? 1.0 : endInterval,
-              curve: Curves.easeOut,
+              curve: Curves.fastOutSlowIn,
             ),
           ),
         );
@@ -527,32 +507,38 @@ class _TransactionScreenState extends State<TransactionScreen>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Label
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+              // 🔥 PEMBUNGKUS MATERIAL DITAMBAHKAN AGAR TEKS BERSIH 🔥
+              Material(
+                color: Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.black, // Pastikan Hitam
+                      decoration: TextDecoration.none, // Hapus Garis Bawah
                     ),
-                  ],
-                ),
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
                   ),
                 ),
               ),
               const SizedBox(width: 16),
+
               // Tombol Bulat
               Container(
                 width: 60,
@@ -584,9 +570,7 @@ class _TransactionScreenState extends State<TransactionScreen>
     );
   }
 
-  // ... (Sisa Widget seperti _buildTransactionItem, _buildBottomNav dll TETAP SAMA) ...
-  // PASTIKAN MENYALIN HELPER WIDGETS DI BAWAH INI JUGA
-
+  // ... (Sisa Widget TETAP SAMA) ...
   Widget _buildTransactionItem(String docId, Map<String, dynamic> data) {
     String type = data['tipe'];
     double amount = (data['jumlah'] ?? 0).toDouble();

@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
-import 'package:mydompet/screens/edit_transaction_screen.dart'; // 1. IMPORT HALAMAN EDIT
+import 'package:mydompet/screens/edit_transaction_screen.dart';
 import 'package:mydompet/screens/expense_screen.dart';
 import 'package:mydompet/screens/income_screen.dart';
 import 'package:mydompet/screens/transfer_screen.dart';
@@ -18,10 +19,64 @@ class TransactionScreen extends StatefulWidget {
   State<TransactionScreen> createState() => _TransactionScreenState();
 }
 
-class _TransactionScreenState extends State<TransactionScreen> {
+// 1. TAMBAHKAN SingleTickerProviderStateMixin UNTUK ANIMASI
+class _TransactionScreenState extends State<TransactionScreen>
+    with SingleTickerProviderStateMixin {
   DateTime selectedDate = DateTime.now();
 
-  // Helper Format Rupiah
+  // --- VARIABEL ANIMASI MENU ---
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _rotateAnimation;
+  bool isMenuOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Inisialisasi Controller Animasi
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250), // Kecepatan animasi
+    );
+
+    // Animasi Fade In/Out
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOut,
+    );
+
+    // Animasi Putar Icon Plus (jadi X)
+    _rotateAnimation = Tween<double>(begin: 0.0, end: 0.125).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  // Fungsi Toggle Menu (Buka/Tutup)
+  void _toggleMenu() {
+    if (isMenuOpen) {
+      _animationController.reverse();
+    } else {
+      _animationController.forward();
+    }
+    setState(() {
+      isMenuOpen = !isMenuOpen;
+    });
+  }
+
+  // Fungsi Menutup Menu (dipanggil saat item diklik)
+  void _closeMenu() {
+    _animationController.reverse();
+    setState(() {
+      isMenuOpen = false;
+    });
+  }
+
   String formatCurrency(num amount) {
     return NumberFormat.currency(
       locale: 'id_ID',
@@ -30,46 +85,36 @@ class _TransactionScreenState extends State<TransactionScreen> {
     ).format(amount);
   }
 
-  // --- NAVIGASI HARI ---
-  void previousDay() {
-    setState(
-      () => selectedDate = selectedDate.subtract(const Duration(days: 1)),
-    );
-  }
+  void previousDay() => setState(
+    () => selectedDate = selectedDate.subtract(const Duration(days: 1)),
+  );
+  void nextDay() =>
+      setState(() => selectedDate = selectedDate.add(const Duration(days: 1)));
 
-  void nextDay() {
-    setState(() => selectedDate = selectedDate.add(const Duration(days: 1)));
-  }
-
-  // --- PILIH TANGGAL (DATE PICKER) ---
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFFFFD339),
-              onPrimary: Colors.black,
-              onSurface: Colors.black,
-            ),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Color(0xFFFFD339),
+            onPrimary: Colors.black,
+            onSurface: Colors.black,
           ),
-          child: child!,
-        );
-      },
+        ),
+        child: child!,
+      ),
     );
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-      });
-    }
+    if (picked != null && picked != selectedDate)
+      setState(() => selectedDate = picked);
   }
 
-  // --- FUNGSI BUKA HALAMAN ---
+  // --- NAVIGATION ---
   void openIncome() {
+    _closeMenu();
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const IncomeScreen()),
@@ -77,6 +122,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
   }
 
   void openExpense() {
+    _closeMenu();
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ExpenseScreen()),
@@ -84,13 +130,13 @@ class _TransactionScreenState extends State<TransactionScreen> {
   }
 
   void openTransfer() {
+    _closeMenu();
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const TransferScreen()),
     );
   }
 
-  // --- HAPUS TRANSAKSI ---
   void deleteTransaction(
     String docId,
     double amount,
@@ -111,7 +157,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-
               await FirebaseFirestore.instance.runTransaction((
                 transaction,
               ) async {
@@ -123,14 +168,12 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 if (walletSnap.exists) {
                   int currentBal = walletSnap['balance'];
                   int newBal = currentBal;
-
                   if (type == 'pemasukan')
                     newBal -= amount.toInt();
                   else if (type == 'pengeluaran')
                     newBal += amount.toInt();
                   else if (type == 'pindah_saldo')
                     newBal += amount.toInt();
-
                   transaction.update(walletRef, {'balance': newBal});
                 }
 
@@ -148,14 +191,12 @@ class _TransactionScreenState extends State<TransactionScreen> {
                     });
                   }
                 }
-
                 transaction.delete(
                   FirebaseFirestore.instance
                       .collection('transactions')
                       .doc(docId),
                 );
               });
-
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text("Transaksi dihapus")),
               );
@@ -205,8 +246,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-
-      // ===================== APPBAR =====================
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFD339),
         elevation: 0,
@@ -246,208 +285,313 @@ class _TransactionScreenState extends State<TransactionScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: IconButton(
-              onPressed: () {
-                // NAVIGASI KE HISTORY SCREEN
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
-                );
-              },
-              icon: const Icon(Icons.history), // Ikon Jam/History
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HistoryScreen()),
+              ),
+              icon: const Icon(Icons.history),
             ),
           ),
         ],
       ),
 
-      // ===================== BODY =====================
-      body: GestureDetector(
-        onHorizontalDragEnd: (details) {
-          if (details.primaryVelocity! > 0) {
-            previousDay();
-          } else if (details.primaryVelocity! < 0) {
-            nextDay();
-          }
-        },
-        child: StreamBuilder<QuerySnapshot>(
-          stream: transactionStream,
-          builder: (context, snapshot) {
-            double income = 0;
-            double expense = 0;
-            List<DocumentSnapshot> docs = [];
+      // 🔥 MENGGUNAKAN STACK UNTUK CUSTOM MENU 🔥
+      body: Stack(
+        children: [
+          // LAYER 1: KONTEN UTAMA (LIST TRANSAKSI)
+          GestureDetector(
+            onHorizontalDragEnd: (details) {
+              if (details.primaryVelocity! > 0)
+                previousDay();
+              else if (details.primaryVelocity! < 0)
+                nextDay();
+            },
+            child: StreamBuilder<QuerySnapshot>(
+              stream: transactionStream,
+              builder: (context, snapshot) {
+                double income = 0;
+                double expense = 0;
+                List<DocumentSnapshot> docs = [];
 
-            if (snapshot.hasData) {
-              docs = snapshot.data!.docs;
-              for (var doc in docs) {
-                Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-                double amount = (data['jumlah'] ?? 0).toDouble();
+                if (snapshot.hasData) {
+                  docs = snapshot.data!.docs;
+                  for (var doc in docs) {
+                    Map<String, dynamic> data =
+                        doc.data() as Map<String, dynamic>;
+                    double amount = (data['jumlah'] ?? 0).toDouble();
+                    if (data['tipe'] == 'pemasukan')
+                      income += amount;
+                    else if (data['tipe'] == 'pengeluaran')
+                      expense += amount;
+                  }
+                }
 
-                if (data['tipe'] == 'pemasukan')
-                  income += amount;
-                else if (data['tipe'] == 'pengeluaran')
-                  expense += amount;
-              }
-            }
-
-            return Column(
-              children: [
-                // HEADER SUMMARY
-                Container(
-                  color: const Color(0xFFFFD339),
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _SummaryItem(
-                          label: "Pemasukan",
-                          value: "+${formatCurrency(income)}",
-                          color: Colors.green,
-                        ),
-                        _SummaryItem(
-                          label: "Pengeluaran",
-                          value: formatCurrency(expense),
-                          color: Colors.black87,
-                        ),
-                        _SummaryItem(
-                          label: "Selisih",
-                          value: (income - expense) >= 0
-                              ? "+${formatCurrency(income - expense)}"
-                              : formatCurrency(income - expense),
-                          color: Colors.green,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // LIST TRANSAKSI
-                Expanded(
-                  child: Container(
-                    color: Colors.white,
-                    child: docs.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(
-                                  Icons.receipt_long,
-                                  size: 80,
-                                  color: Colors.grey,
-                                ),
-                                SizedBox(height: 10),
-                                Text(
-                                  "Belum ada transaksi",
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: docs.length,
-                            separatorBuilder: (context, index) =>
-                                const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              var doc = docs[index];
-                              Map<String, dynamic> data =
-                                  doc.data() as Map<String, dynamic>;
-                              return _buildTransactionItem(doc.id, data);
-                            },
-                          ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.white,
-        child: const Icon(Icons.add, color: Colors.black),
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-            ),
-            builder: (context) {
-              return SizedBox(
-                height: 250,
-                child: Column(
+                return Column(
                   children: [
-                    const SizedBox(height: 12),
                     Container(
-                      width: 45,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[400],
-                        borderRadius: BorderRadius.circular(10),
+                      color: const Color(0xFFFFD339),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                          horizontal: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _SummaryItem(
+                              label: "Pemasukan",
+                              value: "+${formatCurrency(income)}",
+                              color: Colors.green,
+                            ),
+                            _SummaryItem(
+                              label: "Pengeluaran",
+                              value: formatCurrency(expense),
+                              color: Colors.black87,
+                            ),
+                            _SummaryItem(
+                              label: "Selisih",
+                              value: (income - expense) >= 0
+                                  ? "+${formatCurrency(income - expense)}"
+                                  : formatCurrency(income - expense),
+                              color: Colors.green,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    ListTile(
-                      leading: const Icon(
-                        Icons.arrow_downward_rounded,
-                        size: 28,
-                        color: Colors.green,
+                    Expanded(
+                      child: Container(
+                        color: Colors.white,
+                        child: docs.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(
+                                      Icons.receipt_long,
+                                      size: 80,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      "Belum ada transaksi",
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView.separated(
+                                padding: const EdgeInsets.only(
+                                  top: 16,
+                                  left: 16,
+                                  right: 16,
+                                  bottom: 80,
+                                ), // Bottom padding extra untuk FAB
+                                itemCount: docs.length,
+                                separatorBuilder: (context, index) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  var doc = docs[index];
+                                  Map<String, dynamic> data =
+                                      doc.data() as Map<String, dynamic>;
+                                  return _buildTransactionItem(doc.id, data);
+                                },
+                              ),
                       ),
-                      title: const Text("Pemasukan"),
-                      onTap: () {
-                        Navigator.pop(context);
-                        openIncome();
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(
-                        Icons.arrow_upward_rounded,
-                        size: 28,
-                        color: Colors.red,
-                      ),
-                      title: const Text("Pengeluaran"),
-                      onTap: () {
-                        Navigator.pop(context);
-                        openExpense();
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(
-                        Icons.swap_horiz_rounded,
-                        size: 28,
-                        color: Colors.blue,
-                      ),
-                      title: const Text("Pindah Saldo"),
-                      onTap: () {
-                        Navigator.pop(context);
-                        openTransfer();
-                      },
                     ),
                   ],
+                );
+              },
+            ),
+          ),
+
+          // LAYER 2: LATAR GELAP/BLUR (Hanya muncul jika menu terbuka)
+          if (isMenuOpen)
+            GestureDetector(
+              onTap: _closeMenu,
+              child: Container(
+                color: Colors.white.withOpacity(
+                  0.9,
+                ), // Latar Putih Transparan seperti di gambar
+                width: double.infinity,
+                height: double.infinity,
+              ),
+            ),
+
+          // LAYER 3: MENU ITEMS (ANIMASI DARI BAWAH KE ATAS)
+          Positioned(
+            right: 24, // Rata kanan
+            bottom: 100, // Di atas FAB utama
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Item 1: Pindah Saldo (Gold) - Index 2 (Paling atas)
+                _buildAnimatedMenuItem(
+                  index: 2,
+                  label: "Pindah Saldo",
+                  iconSvg: "money-bill-transfer-solid-full",
+                  color: const Color(0xFFA08D45),
+                  onTap: openTransfer,
                 ),
-              );
-            },
-          );
-        },
+                const SizedBox(height: 20),
+
+                // Item 2: Pemasukan (Hijau Teal) - Index 1
+                _buildAnimatedMenuItem(
+                  index: 1,
+                  label: "Pemasukan",
+                  iconSvg: "hand-holding-dollar-solid-full",
+                  color: const Color(0xFF006064),
+                  onTap: openIncome,
+                ),
+                const SizedBox(height: 20),
+
+                // Item 3: Pengeluaran (Cyan) - Index 0 (Paling bawah)
+                _buildAnimatedMenuItem(
+                  index: 0,
+                  label: "Pengeluaran",
+                  iconSvg: "basket-shopping-solid-full",
+                  color: const Color(0xFF00ACC1),
+                  onTap: openExpense,
+                ),
+              ],
+            ),
+          ),
+
+          // LAYER 4: MAIN FAB (TOMBOL UTAMA)
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              onPressed: _toggleMenu,
+              backgroundColor: Colors.white,
+              elevation: 4,
+              child: RotationTransition(
+                turns: _rotateAnimation,
+                child: const Icon(Icons.add, color: Colors.black, size: 32),
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
-  // --- WIDGET ITEM TRANSAKSI ---
+  // WIDGET ITEM MENU DENGAN ANIMASI
+  Widget _buildAnimatedMenuItem({
+    required int index,
+    required String label,
+    required String iconSvg,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    // Membuat delay sedikit antara item (staggered animation)
+    final double startInterval = index * 0.1;
+    final double endInterval = startInterval + 0.6; // Durasi animasi per item
+
+    final Animation<Offset> slideAnimation =
+        Tween<Offset>(
+          begin: const Offset(0, 0.5), // Mulai dari sedikit di bawah
+          end: Offset.zero, // Berakhir di posisi aslinya
+        ).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Interval(
+              startInterval,
+              endInterval > 1.0 ? 1.0 : endInterval,
+              curve: Curves.easeOut,
+            ),
+          ),
+        );
+
+    final Animation<double> fadeAnim = CurvedAnimation(
+      parent: _animationController,
+      curve: Interval(
+        startInterval,
+        endInterval > 1.0 ? 1.0 : endInterval,
+        curve: Curves.easeIn,
+      ),
+    );
+
+    return SlideTransition(
+      position: slideAnimation,
+      child: FadeTransition(
+        opacity: fadeAnim,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Label
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Tombol Bulat
+              Container(
+                width: 60,
+                height: 60,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: SvgPicture.asset(
+                  'assets/icons/$iconSvg.svg',
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ... (Sisa Widget seperti _buildTransactionItem, _buildBottomNav dll TETAP SAMA) ...
+  // PASTIKAN MENYALIN HELPER WIDGETS DI BAWAH INI JUGA
+
   Widget _buildTransactionItem(String docId, Map<String, dynamic> data) {
     String type = data['tipe'];
     double amount = (data['jumlah'] ?? 0).toDouble();
     String title = data['judul'] ?? 'Tanpa Judul';
     String category = data['kategori'] ?? '';
-
     Color amountColor = Colors.black;
     String amountPrefix = "";
     String subtitle = category;
@@ -466,7 +610,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
     }
 
     return InkWell(
-      // 1. Long Press tetap Hapus Cepat (Opsional)
       onLongPress: () => deleteTransaction(
         docId,
         amount,
@@ -474,20 +617,15 @@ class _TransactionScreenState extends State<TransactionScreen> {
         data['walletId'],
         data['toWalletId'],
       ),
-
-      // 2. Tap Biasa -> Buka Halaman Edit [BAGIAN BARU]
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => EditTransactionScreen(
-              docId: docId,
-              data: data, // Kirim seluruh data transaksi
-            ),
+            builder: (context) =>
+                EditTransactionScreen(docId: docId, data: data),
           ),
         );
       },
-
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
@@ -512,7 +650,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 ],
               ),
             ),
-
             Row(
               children: [
                 Text(
@@ -587,7 +724,6 @@ class _SummaryItem extends StatelessWidget {
   final String value;
   final Color? color;
   const _SummaryItem({required this.label, required this.value, this.color});
-
   @override
   Widget build(BuildContext context) {
     return Column(

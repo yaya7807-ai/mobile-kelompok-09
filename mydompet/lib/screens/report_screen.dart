@@ -16,7 +16,21 @@ class ReportScreen extends StatefulWidget {
 }
 
 class _ReportScreenState extends State<ReportScreen> {
-  String selectedTab = 'Hari Ini';
+  List<DocumentSnapshot> _docs = [];
+
+  late PageController _pageController;
+  int _currentPage = 0;
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: 0);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   // Helper: Format Rupiah
   String formatCurrency(num amount) {
@@ -66,21 +80,39 @@ class _ReportScreenState extends State<ReportScreen> {
         ),
         centerTitle: true,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: transactionStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final docs = snapshot.data?.docs ?? [];
-          return Column(
-            children: [
-              _buildTabButtons(),
-              Expanded(child: _buildTabContent(docs)),
-            ],
-          );
-        },
+      body: Column(
+        children: [
+          _buildTabButtons(),
+          Expanded(
+            child: Stack(
+              children: [
+                StreamBuilder<QuerySnapshot>(
+                  stream: transactionStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      _docs = snapshot.data!.docs;
+                    }
+                    return const SizedBox(); // tidak render apa pun
+                  },
+                ),
+
+                PageView(
+                  controller: _pageController,
+                  onPageChanged: (index) {
+                    setState(() => _currentPage = index);
+                  },
+                  children: [
+                    _buildTodayReport(_docs),
+                    _buildWeeklyReport(_docs),
+                    _buildMonthlyReport(_docs),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
+
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
@@ -94,21 +126,28 @@ class _ReportScreenState extends State<ReportScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildTabButton('Hari Ini'),
-          _buildTabButton('Mingguan'),
-          _buildTabButton('Bulanan'),
+          _buildTabButton('Hari Ini', 0),
+          _buildTabButton('Mingguan', 1),
+          _buildTabButton('Bulanan', 2),
         ],
       ),
     );
   }
 
-  Widget _buildTabButton(String label) {
-    final isSelected = selectedTab == label;
+  Widget _buildTabButton(String label, int index) {
+    final isSelected = _currentPage == index;
+
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: ElevatedButton(
-          onPressed: () => setState(() => selectedTab = label),
+          onPressed: () {
+            _pageController.animateToPage(
+              index,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+            );
+          },
           style: ElevatedButton.styleFrom(
             backgroundColor: isSelected ? Colors.yellow : Colors.white,
             foregroundColor: Colors.black,
@@ -127,18 +166,6 @@ class _ReportScreenState extends State<ReportScreen> {
   // -----------------------------
   // KONTEN TAB
   // -----------------------------
-  Widget _buildTabContent(List<DocumentSnapshot> docs) {
-    switch (selectedTab) {
-      case 'Hari Ini':
-        return _buildTodayReport(docs);
-      case 'Mingguan':
-        return _buildWeeklyReport(docs);
-      case 'Bulanan':
-        return _buildMonthlyReport(docs);
-      default:
-        return Container();
-    }
-  }
 
   // =======================================================================
   // 1. LAPORAN HARI INI (FINAL: CHART RAPI + LIST DENGAN NOMINAL)

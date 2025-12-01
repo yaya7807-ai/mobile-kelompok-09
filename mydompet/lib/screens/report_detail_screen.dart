@@ -80,90 +80,63 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
           "Detail Rekap",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFFFFD339), // Kuning
-        iconTheme: const IconThemeData(color: Colors.black),
+        backgroundColor: const Color(0xFFFFD339),
         centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black),
         elevation: 0,
-
-        // --- 3. PERBAIKAN TAB BAR (Menempel di AppBar) ---
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Container(
-            color: const Color(0xFFFFD339), // Background Kuning
-            padding: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3), // Sedikit transparan
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.black12),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                // Indikator aktif berwarna KUNING TERANG solid dengan border hitam tipis
-                indicator: BoxDecoration(
-                  color: const Color(0xFFFFD339),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.black),
-                ),
-                labelColor: Colors.black,
-                unselectedLabelColor: Colors.black54,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-                tabs: const [
-                  Tab(text: "Grafik"),
-                  Tab(text: "Detail"),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
 
-      body: StreamBuilder<QuerySnapshot>(
-        stream: detailStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting)
-            return const Center(child: CircularProgressIndicator());
+      // === PERUBAHAN DI SINI: TabBar dinaikkan ke atas, warna disamakan ===
+      body: Column(
+        children: [
+          // ===============================
+          // TAB BAR DIPINDAH KE PALING ATAS
+          // ===============================
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  height: 45,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicator: BoxDecoration(
+                      color: const Color(0xFFFFD339),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.black, width: 1),
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    labelColor: Colors.black,
+                    unselectedLabelColor: Colors.black54,
+                    labelStyle: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    tabs: const [
+                      Tab(text: "Grafik"),
+                      Tab(text: "Detail"),
+                    ],
+                  ),
+                ),
 
-          final docs = snapshot.data?.docs ?? [];
+                const SizedBox(height: 16),
 
-          // --- OLAH DATA ---
-          double totalIncome = 0;
-          double totalExpense = 0;
-          Map<String, double> expenseByCategory = {};
-          Map<String, double> incomeBySource =
-              {}; // Simpan sumber pemasukan (misal: Gaji, Bonus)
-
-          for (var doc in docs) {
-            String type = doc['tipe'];
-            double amount = (doc['jumlah'] ?? 0).toDouble();
-            String category = doc['kategori'] ?? 'Lainnya';
-            String title = doc['judul'] ?? 'Pemasukan Lain';
-
-            if (type == 'pemasukan') {
-              totalIncome += amount;
-              // Kelompokkan pemasukan berdasarkan kategori atau judul jika kategori kosong
-              String sourceKey = category.isNotEmpty ? category : title;
-              incomeBySource[sourceKey] =
-                  (incomeBySource[sourceKey] ?? 0) + amount;
-            } else if (type == 'pengeluaran') {
-              totalExpense += amount;
-              expenseByCategory[category] =
-                  (expenseByCategory[category] ?? 0) + amount;
-            }
-          }
-
-          int daysCount =
-              widget.endDate.difference(widget.startDate).inDays + 1;
-          double dailyIncomeAvg = totalIncome / daysCount;
-          double dailyExpenseAvg = totalExpense / daysCount;
-
-          return Column(
-            children: [
-              // Judul Periode (Misal: 1 Jan - 7 Jan)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Text(
+                // ===============================
+                // JUDUL + TANGGAL DIPINDAH KE BAWAH TAB BAR
+                // ===============================
+                Text(
                   widget.title,
                   style: const TextStyle(
                     fontSize: 16,
@@ -171,16 +144,58 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
                     color: Colors.black54,
                   ),
                 ),
-              ),
+              ],
+            ),
+          ),
 
-              Expanded(
-                child: TabBarView(
+          const SizedBox(height: 10),
+
+          // ===============================
+          // STREAM BUILDER (TIDAK DIUBAH)
+          // ===============================
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: detailStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final docs = snapshot.data?.docs ?? [];
+
+                double totalIncome = 0;
+                double totalExpense = 0;
+                Map<String, double> expenseByCategory = {};
+                Map<String, double> incomeBySource = {};
+
+                for (var doc in docs) {
+                  String type = doc['tipe'];
+                  double amount = (doc['jumlah'] ?? 0).toDouble();
+                  String category = doc['kategori'] ?? 'Lainnya';
+                  String title = doc['judul'] ?? 'Pemasukan Lain';
+
+                  if (type == 'pemasukan') {
+                    totalIncome += amount;
+                    String sourceKey = category.isNotEmpty ? category : title;
+                    incomeBySource[sourceKey] =
+                        (incomeBySource[sourceKey] ?? 0) + amount;
+                  } else if (type == 'pengeluaran') {
+                    totalExpense += amount;
+                    expenseByCategory[category] =
+                        (expenseByCategory[category] ?? 0) + amount;
+                  }
+                }
+
+                int daysCount =
+                    widget.endDate.difference(widget.startDate).inDays + 1;
+
+                double dailyIncomeAvg = totalIncome / daysCount;
+                double dailyExpenseAvg = totalExpense / daysCount;
+
+                return TabBarView(
                   controller: _tabController,
                   children: [
-                    // === TAB 1: GRAFIK ===
                     _buildGraphicTab(expenseByCategory, totalExpense),
-
-                    // === TAB 2: DETAIL ===
                     _buildDetailTab(
                       totalIncome,
                       totalExpense,
@@ -190,11 +205,11 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
                       expenseByCategory,
                     ),
                   ],
-                ),
-              ),
-            ],
-          );
-        },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

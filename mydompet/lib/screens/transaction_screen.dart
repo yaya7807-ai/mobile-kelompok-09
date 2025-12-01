@@ -11,6 +11,7 @@ import 'package:mydompet/screens/wallet_screen.dart';
 import 'package:mydompet/screens/report_screen.dart';
 import 'package:mydompet/screens/setting_screen.dart';
 import 'package:mydompet/screens/history_screen.dart';
+import 'package:flutter/cupertino.dart';
 
 class TransactionScreen extends StatefulWidget {
   const TransactionScreen({super.key});
@@ -22,6 +23,7 @@ class TransactionScreen extends StatefulWidget {
 class _TransactionScreenState extends State<TransactionScreen>
     with SingleTickerProviderStateMixin {
   DateTime selectedDate = DateTime.now();
+  bool isNext = true;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -81,11 +83,19 @@ class _TransactionScreenState extends State<TransactionScreen>
     ).format(amount);
   }
 
-  void previousDay() => setState(
-    () => selectedDate = selectedDate.subtract(const Duration(days: 1)),
-  );
-  void nextDay() =>
-      setState(() => selectedDate = selectedDate.add(const Duration(days: 1)));
+  void previousDay() {
+    setState(() {
+      isNext = false; // ← TAMBAH BARIS INI
+      selectedDate = selectedDate.subtract(const Duration(days: 1));
+    });
+  }
+
+  void nextDay() {
+    setState(() {
+      isNext = true; // ← TAMBAH BARIS INI
+      selectedDate = selectedDate.add(const Duration(days: 1));
+    });
+  }
 
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
@@ -358,43 +368,114 @@ class _TransactionScreenState extends State<TransactionScreen>
                       ),
                     ),
                     Expanded(
-                      child: Container(
-                        color: Colors.white,
-                        child: docs.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Icon(
-                                      Icons.receipt_long,
-                                      size: 80,
-                                      color: Colors.grey,
-                                    ),
-                                    SizedBox(height: 10),
-                                    Text(
-                                      "Belum ada transaksi",
-                                      style: TextStyle(color: Colors.grey),
-                                    ),
-                                  ],
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 350),
+                        switchInCurve: Curves.easeOutQuart,
+                        switchOutCurve: Curves.easeOutQuart,
+                        transitionBuilder: (child, animation) {
+                          final direction = isNext ? 1.0 : -1.0;
+
+                          // Parallax layer (gerakan latar belakang lebih lambat)
+                          final parallax =
+                              Tween<Offset>(
+                                begin: Offset(0.15 * direction, 0),
+                                end: Offset.zero,
+                              ).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve:
+                                      Curves.easeOutQuint, // lembut & berkelas
                                 ),
-                              )
-                            : ListView.separated(
-                                padding: const EdgeInsets.only(
-                                  top: 16,
-                                  left: 16,
-                                  right: 16,
-                                  bottom: 150,
+                              );
+
+                          // Slide utama (lebih jauh, lebih halus)
+                          final slide =
+                              Tween<Offset>(
+                                begin: Offset(0.35 * direction, 0),
+                                end: Offset.zero,
+                              ).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves
+                                      .easeOutExpo, // ANIMASI PALING MULUS
                                 ),
-                                itemCount: docs.length,
-                                separatorBuilder: (context, index) =>
-                                    const Divider(height: 1),
-                                itemBuilder: (context, index) {
-                                  var doc = docs[index];
-                                  Map<String, dynamic> data =
-                                      doc.data() as Map<String, dynamic>;
-                                  return _buildTransactionItem(doc.id, data);
-                                },
+                              );
+
+                          // Depth (kayak elemen masuk sedikit dari jauh)
+                          final depth = Tween<double>(begin: 0.94, end: 1.0)
+                              .animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOutCubic,
+                                ),
+                              );
+
+                          // Fade
+                          final fade = Tween<double>(begin: 0.0, end: 1.0)
+                              .animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOutQuad,
+                                ),
+                              );
+
+                          return FadeTransition(
+                            opacity: fade,
+                            child: Transform.scale(
+                              scale: depth.value,
+                              child: SlideTransition(
+                                position: slide,
+                                child: SlideTransition(
+                                  position: parallax,
+                                  child: child,
+                                ),
                               ),
+                            ),
+                          );
+                        },
+
+                        child: Container(
+                          key: ValueKey(
+                            selectedDate,
+                          ), // WAJIB AGAR ANIMASI BERFUNGSI
+                          color: Colors.white,
+                          child: docs.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Icon(
+                                        Icons.receipt_long,
+                                        size: 80,
+                                        color: Colors.grey,
+                                      ),
+                                      SizedBox(height: 10),
+                                      Text(
+                                        "Belum ada transaksi",
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.separated(
+                                  padding: const EdgeInsets.only(
+                                    top: 16,
+                                    left: 16,
+                                    right: 16,
+                                    bottom: 150,
+                                  ),
+                                  itemCount: docs.length,
+                                  separatorBuilder: (_, __) =>
+                                      const Divider(height: 1),
+                                  itemBuilder: (context, index) {
+                                    return _buildTransactionItem(
+                                      docs[index].id,
+                                      docs[index].data()
+                                          as Map<String, dynamic>,
+                                    );
+                                  },
+                                ),
+                        ),
                       ),
                     ),
                   ],
@@ -507,7 +588,6 @@ class _TransactionScreenState extends State<TransactionScreen>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 🔥 PEMBUNGKUS MATERIAL DITAMBAHKAN AGAR TEKS BERSIH 🔥
               Material(
                 color: Colors.transparent,
                 child: Container(
@@ -520,9 +600,9 @@ class _TransactionScreenState extends State<TransactionScreen>
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
@@ -531,15 +611,15 @@ class _TransactionScreenState extends State<TransactionScreen>
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: Colors.black, // Pastikan Hitam
-                      decoration: TextDecoration.none, // Hapus Garis Bawah
+                      color: Colors.black,
+                      decoration: TextDecoration.none,
                     ),
                   ),
                 ),
               ),
+
               const SizedBox(width: 16),
 
-              // Tombol Bulat
               Container(
                 width: 60,
                 height: 60,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 // 1. IMPORT file register_screen.dart
-import 'register_screen.dart'; 
+import 'on_boarding_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -41,8 +41,7 @@ class WelcomeScreen extends StatelessWidget {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            const RegisterScreen(),
+                        builder: (context) => const OnboardingScreen(),
                       ),
                     );
                   },

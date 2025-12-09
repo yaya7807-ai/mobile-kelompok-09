@@ -1,7 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart'; // 1. IMPORT FIREBASE AUTH
 import 'package:flutter/material.dart';
 import 'package:mydompet/screens/report_screen.dart';
 import 'package:mydompet/screens/transaction_screen.dart';
 import 'package:mydompet/screens/wallet_screen.dart';
+import 'package:mydompet/screens/welcome_screen.dart'; // Pastikan path ini benar sesuai struktur foldermu
 import 'profile_screen.dart';
 
 class SettingScreen extends StatelessWidget {
@@ -45,11 +47,13 @@ class SettingScreen extends StatelessWidget {
         ],
       ),
 
-      // 🔻 Bottom Nav (versi rapi seperti contohmu)
+      // 🔻 Bottom Nav
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.white)),
+          border: Border(
+            top: BorderSide(color: Colors.black12),
+          ), // Perbaiki warna border agar terlihat
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -77,13 +81,7 @@ class SettingScreen extends StatelessWidget {
                 const ReportScreen(),
                 false,
               ),
-              _navButton(
-                context,
-                Icons.settings,
-                'Setting',
-                null, // halaman ini aktif
-                true,
-              ),
+              _navButton(context, Icons.settings, 'Setting', null, true),
             ],
           ),
         ),
@@ -91,7 +89,7 @@ class SettingScreen extends StatelessWidget {
     );
   }
 
-  // 🔘 NAV BUTTON — sama persis format seperti contohmu
+  // 🔘 NAV BUTTON
   Widget _navButton(
     BuildContext context,
     IconData icon,
@@ -123,6 +121,7 @@ class SettingScreen extends StatelessWidget {
     );
   }
 
+  // 🔥 LOGIKA LOGOUT DI SINI
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -136,11 +135,36 @@ class SettingScreen extends StatelessWidget {
               child: const Text("Batal"),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                // 1. Tutup Dialog
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Berhasil logout")),
-                );
+
+                try {
+                  // 2. Sign Out dari Firebase
+                  await FirebaseAuth.instance.signOut();
+
+                  // 3. Navigasi ke Halaman Awal & Hapus History Navigasi
+                  if (context.mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const WelcomeScreen(), // Ganti dengan OnBoardingScreen jika ada
+                      ),
+                      (route) => false, // Hapus semua rute sebelumnya
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Berhasil logout")),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text("Gagal logout: $e")));
+                  }
+                }
               },
               child: const Text("Logout", style: TextStyle(color: Colors.red)),
             ),
@@ -179,9 +203,17 @@ class _SettingTile extends StatelessWidget {
             label,
             style: const TextStyle(fontSize: 16, color: Colors.black),
           ),
+          trailing: const Icon(
+            Icons.chevron_right,
+            color: Colors.grey,
+          ), // Tambahan panah biar cantik
           onTap: onTap,
         ),
-        const Divider(height: 1),
+        const Divider(
+          height: 1,
+          indent: 16,
+          endIndent: 16,
+        ), // Divider lebih rapi
       ],
     );
   }

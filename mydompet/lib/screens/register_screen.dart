@@ -36,7 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   height: 230,
                   width: 230,
                   decoration: const BoxDecoration(color: Colors.transparent),
-                  child: Image.asset("assets/images/login.png"),
+                  child: Image.asset("assets/images/register.png"),
                 ),
 
                 const SizedBox(height: 10),
@@ -89,14 +89,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         // EMAIL INPUT
                         _buildInputField(
                           controller: _emailController,
-                          hint: "contoh@gmail.com",
+                          hint: "Masukkan email anda",
                           obscure: false,
                         ),
 
                         const SizedBox(height: 18),
 
                         const Text(
-                          "Password",
+                          "Kata sandi",
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 14,
@@ -118,7 +118,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 18),
 
                         const Text(
-                          "Password Konfirmasi",
+                          "Konfirmasi kata sandi",
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 14,
@@ -199,7 +199,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       } on FirebaseAuthException catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(e.message ?? 'Registration failed'),
+                            content: Text(e.message ?? 'Registrasi gagal'),
                           ),
                         );
                       }
@@ -283,7 +283,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         controller: controller,
         obscureText: !isVisible,
         decoration: InputDecoration(
-          hintText: "hanina123",
+          hintText: "Masukkan kata sandi",
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 14,

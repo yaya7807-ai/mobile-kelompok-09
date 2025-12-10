@@ -81,7 +81,7 @@ class _WalletScreenState extends State<WalletScreen> {
           preferredSize: const Size.fromHeight(110),
           child: AppBar(
             automaticallyImplyLeading: false,
-            backgroundColor: const Color(0xFFFFC107),
+            backgroundColor: const Color.fromARGB(255, 255, 235, 59),
             elevation: 0,
             flexibleSpace: SafeArea(
               child: Padding(

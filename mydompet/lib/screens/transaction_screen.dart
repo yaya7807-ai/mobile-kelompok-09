@@ -11,7 +11,6 @@ import 'package:mydompet/screens/wallet_screen.dart';
 import 'package:mydompet/screens/report_screen.dart';
 import 'package:mydompet/screens/setting_screen.dart';
 import 'package:mydompet/screens/history_screen.dart';
-import 'package:flutter/cupertino.dart';
 
 class TransactionScreen extends StatefulWidget {
   const TransactionScreen({super.key});
@@ -23,7 +22,6 @@ class TransactionScreen extends StatefulWidget {
 class _TransactionScreenState extends State<TransactionScreen>
     with SingleTickerProviderStateMixin {
   DateTime selectedDate = DateTime.now();
-  bool isNext = true;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -83,19 +81,11 @@ class _TransactionScreenState extends State<TransactionScreen>
     ).format(amount);
   }
 
-  void previousDay() {
-    setState(() {
-      isNext = false; // ← TAMBAH BARIS INI
-      selectedDate = selectedDate.subtract(const Duration(days: 1));
-    });
-  }
-
-  void nextDay() {
-    setState(() {
-      isNext = true; // ← TAMBAH BARIS INI
-      selectedDate = selectedDate.add(const Duration(days: 1));
-    });
-  }
+  void previousDay() => setState(
+    () => selectedDate = selectedDate.subtract(const Duration(days: 1)),
+  );
+  void nextDay() =>
+      setState(() => selectedDate = selectedDate.add(const Duration(days: 1)));
 
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
@@ -106,7 +96,7 @@ class _TransactionScreenState extends State<TransactionScreen>
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(
-            primary: Color.fromARGB(255, 255, 235, 59),
+            primary: Color(0xFFFFD339),
             onPrimary: Colors.black,
             onSurface: Colors.black,
           ),
@@ -254,7 +244,7 @@ class _TransactionScreenState extends State<TransactionScreen>
         Scaffold(
           backgroundColor: const Color(0xFFF5F5F5),
           appBar: AppBar(
-            backgroundColor: const Color.fromARGB(255, 255, 235, 59),
+            backgroundColor: const Color(0xFFFFD339),
             elevation: 0,
             centerTitle: true,
             automaticallyImplyLeading: false,
@@ -332,7 +322,7 @@ class _TransactionScreenState extends State<TransactionScreen>
                 return Column(
                   children: [
                     Container(
-                      color: const Color.fromARGB(255, 255, 235, 59),
+                      color: const Color(0xFFFFD339),
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -368,114 +358,43 @@ class _TransactionScreenState extends State<TransactionScreen>
                       ),
                     ),
                     Expanded(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 350),
-                        switchInCurve: Curves.easeOutQuart,
-                        switchOutCurve: Curves.easeOutQuart,
-                        transitionBuilder: (child, animation) {
-                          final direction = isNext ? 1.0 : -1.0;
-
-                          // Parallax layer (gerakan latar belakang lebih lambat)
-                          final parallax =
-                              Tween<Offset>(
-                                begin: Offset(0.15 * direction, 0),
-                                end: Offset.zero,
-                              ).animate(
-                                CurvedAnimation(
-                                  parent: animation,
-                                  curve:
-                                      Curves.easeOutQuint, // lembut & berkelas
+                      child: Container(
+                        color: Colors.white,
+                        child: docs.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(
+                                      Icons.receipt_long,
+                                      size: 80,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      "Belum ada transaksi",
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  ],
                                 ),
-                              );
-
-                          // Slide utama (lebih jauh, lebih halus)
-                          final slide =
-                              Tween<Offset>(
-                                begin: Offset(0.35 * direction, 0),
-                                end: Offset.zero,
-                              ).animate(
-                                CurvedAnimation(
-                                  parent: animation,
-                                  curve: Curves
-                                      .easeOutExpo, // ANIMASI PALING MULUS
+                              )
+                            : ListView.separated(
+                                padding: const EdgeInsets.only(
+                                  top: 16,
+                                  left: 16,
+                                  right: 16,
+                                  bottom: 150,
                                 ),
-                              );
-
-                          // Depth (kayak elemen masuk sedikit dari jauh)
-                          final depth = Tween<double>(begin: 0.94, end: 1.0)
-                              .animate(
-                                CurvedAnimation(
-                                  parent: animation,
-                                  curve: Curves.easeOutCubic,
-                                ),
-                              );
-
-                          // Fade
-                          final fade = Tween<double>(begin: 0.0, end: 1.0)
-                              .animate(
-                                CurvedAnimation(
-                                  parent: animation,
-                                  curve: Curves.easeOutQuad,
-                                ),
-                              );
-
-                          return FadeTransition(
-                            opacity: fade,
-                            child: Transform.scale(
-                              scale: depth.value,
-                              child: SlideTransition(
-                                position: slide,
-                                child: SlideTransition(
-                                  position: parallax,
-                                  child: child,
-                                ),
+                                itemCount: docs.length,
+                                separatorBuilder: (context, index) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  var doc = docs[index];
+                                  Map<String, dynamic> data =
+                                      doc.data() as Map<String, dynamic>;
+                                  return _buildTransactionItem(doc.id, data);
+                                },
                               ),
-                            ),
-                          );
-                        },
-
-                        child: Container(
-                          key: ValueKey(
-                            selectedDate,
-                          ), // WAJIB AGAR ANIMASI BERFUNGSI
-                          color: Colors.white,
-                          child: docs.isEmpty
-                              ? Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: const [
-                                      Icon(
-                                        Icons.receipt_long,
-                                        size: 80,
-                                        color: Colors.grey,
-                                      ),
-                                      SizedBox(height: 10),
-                                      Text(
-                                        "Belum ada transaksi",
-                                        style: TextStyle(color: Colors.grey),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : ListView.separated(
-                                  padding: const EdgeInsets.only(
-                                    top: 16,
-                                    left: 16,
-                                    right: 16,
-                                    bottom: 150,
-                                  ),
-                                  itemCount: docs.length,
-                                  separatorBuilder: (_, __) =>
-                                      const Divider(height: 1),
-                                  itemBuilder: (context, index) {
-                                    return _buildTransactionItem(
-                                      docs[index].id,
-                                      docs[index].data()
-                                          as Map<String, dynamic>,
-                                    );
-                                  },
-                                ),
-                        ),
                       ),
                     ),
                   ],
@@ -495,7 +414,7 @@ class _TransactionScreenState extends State<TransactionScreen>
             ),
           ),
 
-        // LAYER 3: MENU ITEMS (Posisi Disesuaikan)
+        // LAYER 3: MENU ITEMS
         Positioned(
           right: 24,
           bottom: 160,
@@ -531,7 +450,7 @@ class _TransactionScreenState extends State<TransactionScreen>
 
         // LAYER 4: MAIN FAB
         Positioned(
-          right: 26,
+          right: 28,
           bottom: 90,
           child: FloatingActionButton(
             onPressed: _toggleMenu,
@@ -547,7 +466,6 @@ class _TransactionScreenState extends State<TransactionScreen>
     );
   }
 
-  // 🔥 UPDATE DI SINI (Menambahkan Material Widget untuk Label) 🔥
   Widget _buildAnimatedMenuItem({
     required int index,
     required String label,
@@ -600,9 +518,9 @@ class _TransactionScreenState extends State<TransactionScreen>
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.12),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -617,9 +535,7 @@ class _TransactionScreenState extends State<TransactionScreen>
                   ),
                 ),
               ),
-
               const SizedBox(width: 16),
-
               Container(
                 width: 60,
                 height: 60,
@@ -650,7 +566,6 @@ class _TransactionScreenState extends State<TransactionScreen>
     );
   }
 
-  // ... (Sisa Widget TETAP SAMA) ...
   Widget _buildTransactionItem(String docId, Map<String, dynamic> data) {
     String type = data['tipe'];
     double amount = (data['jumlah'] ?? 0).toDouble();
@@ -760,9 +675,14 @@ class _TransactionScreenState extends State<TransactionScreen>
       onPressed: active
           ? null
           : () {
-              Navigator.push(
+              // 🔥 UPDATE: MENGHILANGKAN ANIMASI PINDAH HALAMAN 🔥
+              Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => screen),
+                PageRouteBuilder(
+                  pageBuilder: (context, animation1, animation2) => screen,
+                  transitionDuration: Duration.zero,
+                  reverseTransitionDuration: Duration.zero,
+                ),
               );
             },
       child: Column(

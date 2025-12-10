@@ -16,21 +16,7 @@ class ReportScreen extends StatefulWidget {
 }
 
 class _ReportScreenState extends State<ReportScreen> {
-  List<DocumentSnapshot> _docs = [];
-
-  late PageController _pageController;
-  int _currentPage = 0;
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(initialPage: 0);
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
+  String selectedTab = 'Hari Ini';
 
   // Helper: Format Rupiah
   String formatCurrency(num amount) {
@@ -41,7 +27,7 @@ class _ReportScreenState extends State<ReportScreen> {
     ).format(amount);
   }
 
-  // Helper: Warna Dinamis
+  // Helper: Warna Dinamis untuk Kategori
   Color getColorForCategory(String category) {
     final List<Color> colors = [
       Colors.blue,
@@ -61,6 +47,7 @@ class _ReportScreenState extends State<ReportScreen> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+
     final Stream<QuerySnapshot> transactionStream = FirebaseFirestore.instance
         .collection('transactions')
         .where('userId', isEqualTo: user?.uid)
@@ -80,39 +67,22 @@ class _ReportScreenState extends State<ReportScreen> {
         ),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          _buildTabButtons(),
-          Expanded(
-            child: Stack(
-              children: [
-                StreamBuilder<QuerySnapshot>(
-                  stream: transactionStream,
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      _docs = snapshot.data!.docs;
-                    }
-                    return const SizedBox(); // tidak render apa pun
-                  },
-                ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: transactionStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final docs = snapshot.data?.docs ?? [];
 
-                PageView(
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    setState(() => _currentPage = index);
-                  },
-                  children: [
-                    _buildTodayReport(_docs),
-                    _buildWeeklyReport(_docs),
-                    _buildMonthlyReport(_docs),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+          return Column(
+            children: [
+              _buildTabButtons(),
+              Expanded(child: _buildTabContent(docs)),
+            ],
+          );
+        },
       ),
-
       bottomNavigationBar: _buildBottomNav(context),
     );
   }
@@ -126,28 +96,21 @@ class _ReportScreenState extends State<ReportScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildTabButton('Hari Ini', 0),
-          _buildTabButton('Mingguan', 1),
-          _buildTabButton('Bulanan', 2),
+          _buildTabButton('Hari Ini'),
+          _buildTabButton('Mingguan'),
+          _buildTabButton('Bulanan'),
         ],
       ),
     );
   }
 
-  Widget _buildTabButton(String label, int index) {
-    final isSelected = _currentPage == index;
-
+  Widget _buildTabButton(String label) {
+    final isSelected = selectedTab == label;
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: ElevatedButton(
-          onPressed: () {
-            _pageController.animateToPage(
-              index,
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeOutCubic,
-            );
-          },
+          onPressed: () => setState(() => selectedTab = label),
           style: ElevatedButton.styleFrom(
             backgroundColor: isSelected ? Colors.yellow : Colors.white,
             foregroundColor: Colors.black,
@@ -164,11 +127,23 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   // -----------------------------
-  // KONTEN TAB
+  // LOGIKA KONTEN UTAMA
   // -----------------------------
+  Widget _buildTabContent(List<DocumentSnapshot> docs) {
+    switch (selectedTab) {
+      case 'Hari Ini':
+        return _buildTodayReport(docs);
+      case 'Mingguan':
+        return _buildWeeklyReport(docs);
+      case 'Bulanan':
+        return _buildMonthlyReport(docs);
+      default:
+        return Container();
+    }
+  }
 
   // =======================================================================
-  // 1. LAPORAN HARI INI (FINAL: CHART RAPI + LIST DENGAN NOMINAL)
+  // 1. LAPORAN HARI INI
   // =======================================================================
   Widget _buildTodayReport(List<DocumentSnapshot> docs) {
     DateTime now = DateTime.now();
@@ -227,7 +202,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     value: percentage,
                     title: showLabel ? e.key : '',
                     radius: 30,
-                    titlePositionPercentageOffset: 2.2, // Teks jauh di luar
+                    titlePositionPercentageOffset: 2.2,
                     titleStyle: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -250,7 +225,6 @@ class _ReportScreenState extends State<ReportScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Kiri: Kotak Warna & Nama
                     Row(
                       children: [
                         Container(
@@ -281,10 +255,8 @@ class _ReportScreenState extends State<ReportScreen> {
                         ),
                       ],
                     ),
-
-                    // Kanan: Persentase + Nominal (DIPERBAIKI DISINI)
                     Text(
-                      "${percentage.toStringAsFixed(0)}% (${formatCurrency(e.value)})", // 🔥 Tambah formatCurrency
+                      "${percentage.toStringAsFixed(0)}% (${formatCurrency(e.value)})",
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -311,16 +283,8 @@ class _ReportScreenState extends State<ReportScreen> {
       if (doc['tipe'] == 'pindah_saldo') continue;
       DateTime date = (doc['createdAt'] as Timestamp).toDate();
 
-      // Hitung Start & End Month
       DateTime startOfMonth = DateTime(date.year, date.month, 1);
-      DateTime endOfMonth = DateTime(
-        date.year,
-        date.month + 1,
-        0,
-        23,
-        59,
-        59,
-      ); // Hari terakhir bulan ini
+      DateTime endOfMonth = DateTime(date.year, date.month + 1, 0, 23, 59, 59);
 
       String key = DateFormat('MMMM yyyy', 'id_ID').format(date);
 
@@ -351,7 +315,6 @@ class _ReportScreenState extends State<ReportScreen> {
           entry.value['income'],
           entry.value['expense'],
           () {
-            // 🔥 NAVIGASI KE DETAIL 🔥
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -372,20 +335,18 @@ class _ReportScreenState extends State<ReportScreen> {
   // 3. LAPORAN MINGGUAN
   // =======================================================================
   Widget _buildWeeklyReport(List<DocumentSnapshot> docs) {
-    // Key: "1 Jan - 7 Jan", Value: {income, expense, startDate, endDate}
     Map<String, Map<String, dynamic>> weeklyData = {};
 
     for (var doc in docs) {
       if (doc['tipe'] == 'pindah_saldo') continue;
       DateTime date = (doc['createdAt'] as Timestamp).toDate();
 
-      // Hitung Start & End Week
       DateTime startOfWeek = date.subtract(Duration(days: date.weekday - 1));
       startOfWeek = DateTime(
         startOfWeek.year,
         startOfWeek.month,
         startOfWeek.day,
-      ); // Jam 00:00
+      );
       DateTime endOfWeek = startOfWeek.add(
         const Duration(days: 6, hours: 23, minutes: 59),
       );
@@ -420,7 +381,6 @@ class _ReportScreenState extends State<ReportScreen> {
           entry.value['income'],
           entry.value['expense'],
           () {
-            // 🔥 NAVIGASI KE DETAIL 🔥
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -534,6 +494,7 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  // 🔥 NAV BUTTON DIPERBAIKI (TANPA ANIMASI) 🔥
   Widget _navButton(
     BuildContext context,
     IconData icon,
@@ -544,7 +505,14 @@ class _ReportScreenState extends State<ReportScreen> {
     return TextButton(
       onPressed: () {
         if (!active && screen != null) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation1, animation2) => screen,
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+          );
         }
       },
       child: Column(

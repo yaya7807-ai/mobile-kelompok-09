@@ -80,7 +80,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(
-            primary: Color(0xFFFFD339),
+            primary: Color.fromARGB(255, 255, 235, 59),
             onPrimary: Colors.black,
             onSurface: Colors.black,
           ),
@@ -285,7 +285,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFE5E5E5),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFFD339),
+        backgroundColor: const Color.fromARGB(255, 255, 235, 59),
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -377,7 +377,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                       horizontal: 28,
                       vertical: 12,
                     ),
-                    backgroundColor: const Color(0xFFFFD339),
+                    backgroundColor: const Color.fromARGB(255, 255, 235, 59),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),

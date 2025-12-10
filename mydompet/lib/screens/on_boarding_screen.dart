@@ -54,7 +54,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       child: Container(
                         width: double.infinity,
                         decoration: const BoxDecoration(
-                          color: Color(0xFFFBC02D), // kuning background
+                          color: Color.fromARGB(
+                            255,
+                            255,
+                            235,
+                            59,
+                          ), // kuning background
                         ),
                         child: Center(
                           child: Image.asset(data[index]["img"]!, height: 400),
@@ -102,7 +107,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 decoration: BoxDecoration(
                   color: currentIndex == index
                       ? Colors.yellow
-                      : Colors.grey.shade300,
+                      : Colors.grey.shade400,
                   borderRadius: BorderRadius.circular(50),
                 ),
               ),
@@ -133,14 +138,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.amber,
+                  color: Colors.yellow,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
                   child: Text(
                     currentIndex == data.length - 1 ? "Mulai" : "Lanjut",
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: Colors.black,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),

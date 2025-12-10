@@ -18,7 +18,7 @@ class WelcomeScreen extends StatelessWidget {
               Column(
                 children: [
                   // PASTIKAN kamu sudah setup 'assets/images/logo.png' di pubspec.yaml
-                  Image.asset('assets/images/logo.png', width: 200),
+                  Image.asset('assets/images/logo.png', width: 400),
                   const SizedBox(height: 16),
                   const SizedBox(height: 24),
                   const Text(

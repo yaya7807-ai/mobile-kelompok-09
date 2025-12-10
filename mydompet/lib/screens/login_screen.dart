@@ -20,9 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(
-        0xffFFF9E8,
-      ), // warna background lembut kayak di gambar
+      backgroundColor: const Color(0xffFFF9E8),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -30,7 +28,6 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const SizedBox(height: 20),
 
-              // GAMBAR DI ATAS
               Center(
                 child: Image.asset(
                   "assets/images/login.png",
@@ -58,7 +55,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 30),
 
-              // CARD FORM PUTIH
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -90,22 +86,28 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 8),
 
-                      // EMAIL INPUT
                       TextFormField(
                         controller: _emailController,
                         decoration: InputDecoration(
                           hintText: "Masukkan email anda",
+                          prefixIcon: const Icon(Icons.email_outlined),
                           filled: true,
                           fillColor: const Color(0xffF7F7F7),
-                          prefixIcon: const Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(
+                          enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xffFBC02D),
+                              width: 2,
+                            ),
+                          ),
                         ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Tolong masukkan email anda';
+                          if (value == null || value.trim().isEmpty) {
+                            return "Email tidak boleh kosong";
                           }
                           return null;
                         },
@@ -122,15 +124,25 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 8),
 
-                      // PASSWORD INPUT
                       TextFormField(
                         controller: _passwordController,
                         obscureText: !_isPasswordVisible,
                         decoration: InputDecoration(
                           hintText: "Masukkan kata sandi",
+                          prefixIcon: const Icon(Icons.lock_outline),
                           filled: true,
                           fillColor: const Color(0xffF7F7F7),
-                          prefixIcon: const Icon(Icons.lock_outline),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xffFBC02D),
+                              width: 2,
+                            ),
+                          ),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _isPasswordVisible
@@ -143,14 +155,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               });
                             },
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
                         ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Tolong masukkan kata sandi anda';
+                          if (value == null || value.trim().isEmpty) {
+                            return "Kata sandi tidak boleh kosong";
                           }
                           return null;
                         },
@@ -185,7 +193,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 28),
 
-              // BUTTON MULAI
               GestureDetector(
                 onTap: () async {
                   if (_formKey.currentState!.validate()) {

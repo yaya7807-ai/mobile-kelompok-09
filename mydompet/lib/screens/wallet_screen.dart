@@ -6,6 +6,7 @@ import 'package:mydompet/screens/create_pocket_screen.dart';
 import 'package:mydompet/screens/report_screen.dart';
 import 'package:mydompet/screens/setting_screen.dart';
 import 'package:mydompet/screens/transaction_screen.dart';
+import 'package:mydompet/screens/edit_balance_screen.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -225,7 +226,23 @@ class _WalletScreenState extends State<WalletScreen> {
 
   Widget _buildWalletCard(Map<String, dynamic> wallet) {
     return GestureDetector(
-      onTap: () {},
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EditBalanceScreen(
+              name: wallet['name'],
+              balance: wallet['balance'].toInt(),
+              onUpdate: (newBalance) async {
+                await FirebaseFirestore.instance
+                    .collection('wallets')
+                    .doc(wallet['id'])
+                    .update({'balance': newBalance});
+              },
+            ),
+          ),
+        );
+      },
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF00695C),

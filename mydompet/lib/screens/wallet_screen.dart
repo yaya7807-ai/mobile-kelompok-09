@@ -16,17 +16,14 @@ class WalletScreen extends StatefulWidget {
 
 class _WalletScreenState extends State<WalletScreen> {
   final TextEditingController searchController = TextEditingController();
-
-  // 1. TAMBAHKAN FocusNode UNTUK MENDETEKSI KURSOR
   final FocusNode _searchFocusNode = FocusNode();
 
   String searchQuery = "";
-  bool isFocused = false; // Status apakah sedang mengetik
+  bool isFocused = false;
 
   @override
   void initState() {
     super.initState();
-    // Pendengar: Kalau status fokus berubah, update tampilan agar tombol X muncul/hilang
     _searchFocusNode.addListener(() {
       setState(() {
         isFocused = _searchFocusNode.hasFocus;
@@ -36,7 +33,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
   @override
   void dispose() {
-    _searchFocusNode.dispose(); // Bersihkan memori
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -66,11 +63,8 @@ class _WalletScreenState extends State<WalletScreen> {
     final Stream<QuerySnapshot> walletsStream = FirebaseFirestore.instance
         .collection('wallets')
         .where('userId', isEqualTo: user?.uid)
-        // .orderBy('createdAt', descending: false)
         .snapshots();
 
-    // 2. BUNGKUS SCAFFOLD DENGAN GESTURE DETECTOR
-    // Ini supaya kalau tekan layar kosong, keyboard menutup
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -90,7 +84,6 @@ class _WalletScreenState extends State<WalletScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 10),
-
                     Container(
                       height: 40,
                       decoration: BoxDecoration(
@@ -99,7 +92,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       ),
                       child: TextField(
                         controller: searchController,
-                        focusNode: _searchFocusNode, // 3. PASANG FOCUS NODE
+                        focusNode: _searchFocusNode,
                         onChanged: (value) =>
                             setState(() => searchQuery = value),
                         decoration: InputDecoration(
@@ -110,9 +103,6 @@ class _WalletScreenState extends State<WalletScreen> {
                             color: Colors.grey,
                           ),
                           contentPadding: const EdgeInsets.only(top: 8),
-
-                          // 4. LOGIKA TOMBOL X BARU
-                          // Muncul jika: Ada teks ATAU Sedang Fokus (Keyboard muncul)
                           suffixIcon: (searchQuery.isNotEmpty || isFocused)
                               ? IconButton(
                                   icon: const Icon(
@@ -120,11 +110,8 @@ class _WalletScreenState extends State<WalletScreen> {
                                     color: Colors.grey,
                                   ),
                                   onPressed: () {
-                                    // Hapus teks
                                     searchController.clear();
                                     setState(() => searchQuery = "");
-
-                                    // Tutup Keyboard (Hilangkan kursor)
                                     _searchFocusNode.unfocus();
                                   },
                                 )
@@ -138,7 +125,6 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
           ),
         ),
-
         body: StreamBuilder<QuerySnapshot>(
           stream: walletsStream,
           builder: (context, snapshot) {
@@ -209,7 +195,6 @@ class _WalletScreenState extends State<WalletScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
                   Expanded(
                     child: GridView.builder(
                       itemCount: filteredWallets.length + 1,
@@ -338,6 +323,7 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
+  // 🔥 NAV BUTTON DIPERBAIKI (TANPA ANIMASI) 🔥
   Widget _navButton(
     BuildContext context,
     IconData icon,
@@ -348,9 +334,13 @@ class _WalletScreenState extends State<WalletScreen> {
     return TextButton(
       onPressed: () {
         if (!active && screen != null) {
-          Navigator.push(
+          Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => screen),
+            PageRouteBuilder(
+              pageBuilder: (context, animation1, animation2) => screen,
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
           );
         }
       },

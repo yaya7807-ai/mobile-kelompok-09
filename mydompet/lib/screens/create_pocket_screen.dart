@@ -119,7 +119,7 @@ class _CreatePocketScreenState extends State<CreatePocketScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : savePocket,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFC107),
+                  backgroundColor: const Color.fromARGB(255, 255, 235, 59),
                   foregroundColor: Colors.black,
                 ),
                 child: isLoading

@@ -80,7 +80,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
           "Detail Rekap",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFFFFD339),
+        backgroundColor: const Color.fromARGB(255, 255, 235, 59),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
         elevation: 0,
@@ -113,7 +113,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
                   child: TabBar(
                     controller: _tabController,
                     indicator: BoxDecoration(
-                      color: const Color(0xFFFFD339),
+                      color: const Color.fromARGB(255, 255, 235, 59),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: Colors.black, width: 1),
                     ),

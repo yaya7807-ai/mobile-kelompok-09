@@ -106,7 +106,7 @@ class _TransactionScreenState extends State<TransactionScreen>
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(
-            primary: Color(0xFFFFD339),
+            primary: Color.fromARGB(255, 255, 235, 59),
             onPrimary: Colors.black,
             onSurface: Colors.black,
           ),
@@ -254,7 +254,7 @@ class _TransactionScreenState extends State<TransactionScreen>
         Scaffold(
           backgroundColor: const Color(0xFFF5F5F5),
           appBar: AppBar(
-            backgroundColor: const Color(0xFFFFD339),
+            backgroundColor: const Color.fromARGB(255, 255, 235, 59),
             elevation: 0,
             centerTitle: true,
             automaticallyImplyLeading: false,
@@ -332,7 +332,7 @@ class _TransactionScreenState extends State<TransactionScreen>
                 return Column(
                   children: [
                     Container(
-                      color: const Color(0xFFFFD339),
+                      color: const Color.fromARGB(255, 255, 235, 59),
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       child: Container(
                         padding: const EdgeInsets.symmetric(

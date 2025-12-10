@@ -165,7 +165,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFE5E5E5),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFFD339),
+        backgroundColor: const Color.fromARGB(255, 255, 235, 59),
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -289,7 +289,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                       horizontal: 28,
                       vertical: 12,
                     ),
-                    backgroundColor: const Color(0xFFFFD339),
+                    backgroundColor: const Color.fromARGB(255, 255, 235, 59),
                     elevation: 3,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),

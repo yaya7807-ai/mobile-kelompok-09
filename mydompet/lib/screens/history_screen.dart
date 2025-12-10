@@ -38,7 +38,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         // --- WARNA KEMBALI KUNING ---
-        backgroundColor: const Color(0xFFFFD339),
+        backgroundColor: const Color.fromARGB(255, 255, 235, 59),
         foregroundColor: Colors.black, // Teks & Ikon jadi Hitam
         elevation: 0,
         centerTitle: true,
@@ -51,8 +51,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           // --- KOLOM PENCARIAN ---
           Container(
-            color: const Color(
-              0xFFFFD339,
+            color: const Color.fromARGB(
+              255,
+              255,
+              235,
+              59,
             ), // Background Kuning menyatu dengan AppBar
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Container(

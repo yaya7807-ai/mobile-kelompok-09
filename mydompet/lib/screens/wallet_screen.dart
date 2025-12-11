@@ -227,17 +227,54 @@ class _WalletScreenState extends State<WalletScreen> {
   Widget _buildWalletCard(Map<String, dynamic> wallet) {
     return GestureDetector(
       onTap: () {
+        final int oldBalance = (wallet['balance'] ?? 0).toInt();
+        final String walletId = wallet['id'];
+
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => EditBalanceScreen(
               name: wallet['name'],
-              balance: wallet['balance'].toInt(),
+              balance: oldBalance,
+
               onUpdate: (newName, newBalance) async {
-                await FirebaseFirestore.instance
-                    .collection('wallets')
-                    .doc(wallet['id'])
-                    .update({'name': newName, 'balance': newBalance});
+                // 1. Hitung Selisih
+                int difference = newBalance - oldBalance;
+
+                final firestore = FirebaseFirestore.instance;
+                final batch = firestore.batch();
+                final user = FirebaseAuth.instance.currentUser;
+
+                if (difference != 0) {
+                  bool isIncome = difference > 0;
+
+                  final transactionRef = firestore
+                      .collection('transactions')
+                      .doc();
+
+                  batch.set(transactionRef, {
+                    'judul': 'Koreksi Saldo',
+                    'tipe': isIncome ? 'pemasukan' : 'pengeluaran',
+                    'jumlah': difference.abs(),
+                    'kategori': 'Pindah saldo',
+                    //Timestamp, bukan String ISO8601
+                    'createdAt': Timestamp.now(),
+
+                    'walletId': walletId,
+                    'walletName': newName,
+                    'userId': user?.uid, // TransactionScreen filter by 'userId'
+                  });
+                }
+
+                // 3. Update Saldo Dompet
+                final walletRef = firestore.collection('wallets').doc(walletId);
+                batch.update(walletRef, {
+                  'name': newName,
+                  'balance': newBalance,
+                });
+
+                // 4. Simpan
+                await batch.commit();
               },
             ),
           ),

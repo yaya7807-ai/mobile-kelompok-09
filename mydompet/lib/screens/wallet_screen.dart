@@ -233,11 +233,11 @@ class _WalletScreenState extends State<WalletScreen> {
             builder: (context) => EditBalanceScreen(
               name: wallet['name'],
               balance: wallet['balance'].toInt(),
-              onUpdate: (newBalance) async {
+              onUpdate: (newName, newBalance) async {
                 await FirebaseFirestore.instance
                     .collection('wallets')
                     .doc(wallet['id'])
-                    .update({'balance': newBalance});
+                    .update({'name': newName, 'balance': newBalance});
               },
             ),
           ),

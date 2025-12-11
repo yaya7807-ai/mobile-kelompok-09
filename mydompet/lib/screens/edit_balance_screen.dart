@@ -4,7 +4,8 @@ import 'package:intl/intl.dart';
 class EditBalanceScreen extends StatefulWidget {
   final String name;
   final int balance;
-  final Future<void> Function(int newBalance) onUpdate;
+  // NOTE: onUpdate sekarang menerima nama dan balance
+  final Future<void> Function(String newName, int newBalance) onUpdate;
 
   const EditBalanceScreen({
     super.key,
@@ -35,11 +36,18 @@ class _EditBalanceScreenState extends State<EditBalanceScreen> {
     );
   }
 
+  @override
+  void dispose() {
+    nameController.dispose();
+    balanceController.dispose();
+    super.dispose();
+  }
+
   // Format angka otomatis jadi 3 digit
   void _onBalanceChanged(String value) {
     String clean = value.replaceAll(RegExp(r'[^0-9]'), '');
     if (clean.isEmpty) {
-      balanceController.value = TextEditingValue(text: "");
+      balanceController.value = const TextEditingValue(text: "");
       return;
     }
 
@@ -55,13 +63,14 @@ class _EditBalanceScreenState extends State<EditBalanceScreen> {
     );
   }
 
-  // Simpan perubahan
-  // Simpan perubahan
+  // Simpan perubahan (kirimkan nama + saldo)
   Future<void> saveWallet() async {
+    final newName = nameController.text.trim();
+
     String cleanBalance = balanceController.text.replaceAll('.', '');
     int finalBalance = int.tryParse(cleanBalance) ?? widget.balance;
 
-    await widget.onUpdate(finalBalance);
+    await widget.onUpdate(newName, finalBalance);
 
     if (mounted && Navigator.canPop(context)) {
       Navigator.pop(context);

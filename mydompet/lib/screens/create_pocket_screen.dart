@@ -15,25 +15,19 @@ class _CreatePocketScreenState extends State<CreatePocketScreen> {
   final TextEditingController balanceController = TextEditingController();
   bool isLoading = false;
 
-  // FORMATTER INPUT
-  // Fungsi ini dipanggil setiap kali user mengetik angka
   void _onBalanceChanged(String value) {
-    // 1. Hapus karakter selain angka (misal titik yg lama)
     String cleanString = value.replaceAll(RegExp(r'[^0-9]'), '');
 
     if (cleanString.isEmpty) return;
 
-    // 2. Parse ke angka
     double number = double.parse(cleanString);
 
-    // 3. Format ulang dengan titik
     String formatted = NumberFormat.currency(
       locale: 'id_ID',
       symbol: '',
       decimalDigits: 0,
     ).format(number);
 
-    // 4. Set teks baru ke controller tanpa memindahkan kursor ke awal
     balanceController.value = TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
@@ -42,8 +36,6 @@ class _CreatePocketScreenState extends State<CreatePocketScreen> {
 
   Future<void> savePocket() async {
     final name = nameController.text.trim();
-    // PENTING: Sebelum simpan, kita harus HAPUS TITIKNYA
-    // "10.000" -> "10000"
     final balanceString = balanceController.text.replaceAll('.', '');
 
     if (name.isEmpty || balanceString.isEmpty) {
@@ -59,7 +51,7 @@ class _CreatePocketScreenState extends State<CreatePocketScreen> {
       final user = FirebaseAuth.instance.currentUser;
 
       if (user != null) {
-        final int balance = int.parse(balanceString); // Sekarang aman di-parse
+        final int balance = int.parse(balanceString);
 
         await FirebaseFirestore.instance.collection('wallets').add({
           'userId': user.uid,
@@ -103,7 +95,6 @@ class _CreatePocketScreenState extends State<CreatePocketScreen> {
             TextField(
               controller: balanceController,
               keyboardType: TextInputType.number,
-              // Panggil fungsi format saat mengetik
               onChanged: _onBalanceChanged,
               decoration: const InputDecoration(
                 labelText: "Saldo Awal",

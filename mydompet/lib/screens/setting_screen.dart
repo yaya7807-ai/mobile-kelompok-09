@@ -94,7 +94,6 @@ class SettingScreen extends StatelessWidget {
     );
   }
 
-  // 🔘 NAV BUTTON (PERSIS SEPERTI CONTOH REFERENSI)
   Widget _navButton(
     BuildContext context,
     IconData icon,
@@ -105,7 +104,6 @@ class SettingScreen extends StatelessWidget {
     return TextButton(
       onPressed: () {
         if (!active && screen != null) {
-          // Menggunakan pushReplacement agar transisi lebih mulus antar tab utama
           Navigator.pushReplacement(
             context,
             PageRouteBuilder(
@@ -116,7 +114,6 @@ class SettingScreen extends StatelessWidget {
           );
         }
       },
-      // Kita ikuti style default TextButton agar ukurannya sama persis dengan halaman lain
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -134,7 +131,6 @@ class SettingScreen extends StatelessWidget {
     );
   }
 
-  // 🔥 LOGIKA LOGOUT
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,

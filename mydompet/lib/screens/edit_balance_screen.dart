@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 class EditBalanceScreen extends StatefulWidget {
   final String name;
   final int balance;
-  // NOTE: onUpdate sekarang menerima nama dan balance
   final Future<void> Function(String newName, int newBalance) onUpdate;
 
   const EditBalanceScreen({

@@ -222,7 +222,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               const SizedBox(height: 28),
 
-              // BUTTON DAFTAR
+              // tombol daftar
               GestureDetector(
                 onTap: () async {
                   if (_formKey.currentState!.validate()) {

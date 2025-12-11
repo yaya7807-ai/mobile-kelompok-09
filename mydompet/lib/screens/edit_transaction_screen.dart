@@ -32,7 +32,6 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
   @override
   void initState() {
     super.initState();
-    // 1. Inisialisasi Data dari Transaksi yang Diedit
     DateTime date = (widget.data['createdAt'] as Timestamp).toDate();
     selectedDate = date;
     selectedTime = TimeOfDay.fromDateTime(date);
@@ -53,7 +52,6 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     toWalletId = widget.data['toWalletId'];
   }
 
-  // --- FORMATTER ---
   void _onAmountChanged(String value) {
     String cleanString = value.replaceAll(RegExp(r'[^0-9]'), '');
     if (cleanString.isEmpty) return;
@@ -69,7 +67,6 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     );
   }
 
-  // --- PICKERS ---
   Future<void> pickDate() async {
     DateTime? result = await showDatePicker(
       context: context,
@@ -184,7 +181,6 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     );
   }
 
-  // --- UPDATE TRANSAKSI ---
   Future<void> updateTransaction() async {
     String cleanAmount = amountController.text.replaceAll('.', '');
     if (titleController.text.isEmpty || cleanAmount.isEmpty) return;
@@ -202,7 +198,6 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
       );
 
       await FirebaseFirestore.instance.runTransaction((transaction) async {
-        // 1. Ambil Data Wallet
         DocumentReference walletRef = FirebaseFirestore.instance
             .collection('wallets')
             .doc(widget.data['walletId']);
@@ -214,8 +209,6 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
         int oldAmount = (widget.data['jumlah'] as num).toInt();
         String type = widget.data['tipe'];
 
-        // 2. Hitung Saldo Koreksi
-        // Logika: Kembalikan saldo lama -> Terapkan saldo baru
         int correctedBal = currentBal;
 
         if (type == 'pemasukan') {
@@ -241,7 +234,6 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
           }
         }
 
-        // 3. Update DB
         transaction.update(walletRef, {'balance': correctedBal});
         transaction.update(
           FirebaseFirestore.instance
@@ -337,7 +329,6 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
               ),
               const SizedBox(height: 15),
 
-              // INFO WALLET (READ ONLY UTK EDIT)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -362,7 +353,6 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
               _buildTextField("Judul", titleController),
               const SizedBox(height: 15),
 
-              // Kategori (Disembunyikan jika pindah saldo)
               if (widget.data['tipe'] != 'pindah_saldo')
                 _buildTextField("Kategori", categoryController),
 

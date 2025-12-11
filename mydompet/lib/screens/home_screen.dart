@@ -23,7 +23,7 @@ class HomeScreen extends StatelessWidget {
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
       ),
-      // Contoh Floating Action Button untuk menambah transaksi nanti
+      // Action Button untuk menambah transaksi selanjutnya
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Aksi untuk menambah data

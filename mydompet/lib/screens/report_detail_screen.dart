@@ -30,7 +30,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
     _tabController = TabController(length: 2, vsync: this);
   }
 
-  // Helper Format Rupiah
+  //Format Rupiah
   String formatCurrency(num amount) {
     return NumberFormat.currency(
       locale: 'id_ID',
@@ -39,7 +39,6 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
     ).format(amount);
   }
 
-  // Helper Warna Kategori
   Color getColorForCategory(String category) {
     final List<Color> colors = [
       Colors.blue,
@@ -86,12 +85,8 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
         elevation: 0,
       ),
 
-      // === PERUBAHAN DI SINI: TabBar dinaikkan ke atas, warna disamakan ===
       body: Column(
         children: [
-          // ===============================
-          // TAB BAR DIPINDAH KE PALING ATAS
-          // ===============================
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
@@ -133,9 +128,6 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
 
                 const SizedBox(height: 16),
 
-                // ===============================
-                // JUDUL + TANGGAL DIPINDAH KE BAWAH TAB BAR
-                // ===============================
                 Text(
                   widget.title,
                   style: const TextStyle(
@@ -150,9 +142,6 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
 
           const SizedBox(height: 10),
 
-          // ===============================
-          // STREAM BUILDER (TIDAK DIUBAH)
-          // ===============================
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: detailStream,
@@ -302,9 +291,6 @@ class _ReportDetailScreenState extends State<ReportDetailScreen>
     );
   }
 
-  // ------------------------------------------
-  // WIDGET TAB 2: DETAIL TEXT (Tambah Daftar Pemasukan)
-  // ------------------------------------------
   Widget _buildDetailTab(
     double income,
     double expense,

@@ -24,7 +24,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
   bool isLoading = false;
 
-  // --- FORMATTER ANGKA (Menambahkan titik otomatis) ---
   void _onAmountChanged(String value) {
     // 1. Hapus semua karakter kecuali angka
     String cleanString = value.replaceAll(RegExp(r'[^0-9]'), '');
@@ -47,9 +46,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     );
   }
 
-  /// =============================
-  ///  PICK DATE & TIME
-  /// =============================
   Future<void> pickDate() async {
     DateTime? result = await showDatePicker(
       context: context,
@@ -68,9 +64,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     if (result != null) setState(() => selectedTime = result);
   }
 
-  /// =============================
-  ///  SIMPAN PENGELUARAN KE FIREBASE
-  /// =============================
   Future<void> saveExpense() async {
     // 1. Bersihkan format titik dari jumlah (misal "10.000" jadi "10000")
     String cleanAmount = amountController.text.replaceAll('.', '');
@@ -102,9 +95,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         selectedTime.minute,
       );
 
-      // 3. JALANKAN TRANSAKSI DATABASE (Agar saldo berkurang aman)
       await FirebaseFirestore.instance.runTransaction((transaction) async {
-        // A. Ambil Data Kantong
+        // 1. Ambil Data Kantong
         DocumentReference walletRef = FirebaseFirestore.instance
             .collection('wallets')
             .doc(selectedWalletId);
@@ -115,15 +107,15 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
           throw Exception("Kantong tidak ditemukan!");
         }
 
-        // B. Hitung Saldo Baru (DIKURANGI)
+        // 2. Hitung Saldo Baru (DIKURANGI)
         int currentBalance = walletSnapshot['balance'] ?? 0;
         int newBalance =
             currentBalance - amount; // <--- INI BEDANYA DENGAN PEMASUKAN
 
-        // C. Update Saldo Dompet
+        // 3. Update Saldo Dompet
         transaction.update(walletRef, {'balance': newBalance});
 
-        // D. Simpan Riwayat Transaksi
+        // 4. Simpan Riwayat Transaksi
         DocumentReference newTransRef = FirebaseFirestore.instance
             .collection('transactions')
             .doc();
@@ -183,7 +175,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ================= DATE + TIME UI =================
               Row(
                 children: [
                   Expanded(
@@ -209,7 +200,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               ),
               const SizedBox(height: 15),
 
-              // ================= DROPDOWN KANTONG (FIREBASE) =================
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('wallets')
@@ -267,7 +257,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
               const SizedBox(height: 15),
 
-              // ================= INPUT FIELDS =================
+              //INPUT FIELDs
               // Jumlah (Pakai Formatter)
               _buildTextField("Jumlah", amountController, isNumber: true),
               const SizedBox(height: 15),
@@ -280,7 +270,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               _buildTextField("Kategori Pengeluaran", categoryController),
               const SizedBox(height: 25),
 
-              // ================= BUTTON SIMPAN =================
+              //BUTTON SIMPAN
               Align(
                 alignment: Alignment.centerRight,
                 child: ElevatedButton(

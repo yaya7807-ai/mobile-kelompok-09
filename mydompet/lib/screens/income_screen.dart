@@ -24,7 +24,6 @@ class _IncomeScreenState extends State<IncomeScreen> {
 
   bool isLoading = false;
 
-  // --- FORMATTER RUPIAH SAAT MENGETIK ---
   void _onAmountChanged(String value) {
     String cleanString = value.replaceAll(RegExp(r'[^0-9]'), '');
     if (cleanString.isEmpty) return;
@@ -41,7 +40,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
     );
   }
 
-  // --- FUNGSI PICK DATE & TIME ---
+  //FUNGSI PICK DATE & TIME
   Future<void> pickDate() async {
     DateTime? result = await showDatePicker(
       context: context,
@@ -60,7 +59,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
     if (result != null) setState(() => selectedTime = result);
   }
 
-  // --- FUNGSI SIMPAN KE FIREBASE ---
+  //FUNGSI SIMPAN KE FIREBASE
   Future<void> saveIncome() async {
     // 1. Validasi Input
     String cleanAmount = amountController.text.replaceAll('.', '');
@@ -196,7 +195,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
               ),
               const SizedBox(height: 15),
 
-              // ================= DROPDOWN KANTONG DARI FIREBASE =================
+              //DROPDOWN KANTONG DARI FIREBASE
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('wallets')

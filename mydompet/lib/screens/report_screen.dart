@@ -18,7 +18,6 @@ class ReportScreen extends StatefulWidget {
 class _ReportScreenState extends State<ReportScreen> {
   String selectedTab = 'Hari Ini';
 
-  // Helper: Format Rupiah
   String formatCurrency(num amount) {
     return NumberFormat.currency(
       locale: 'id_ID',
@@ -27,7 +26,6 @@ class _ReportScreenState extends State<ReportScreen> {
     ).format(amount);
   }
 
-  // Helper: Warna Dinamis untuk Kategori
   Color getColorForCategory(String category) {
     final List<Color> colors = [
       Colors.blue,
@@ -87,9 +85,6 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  // -----------------------------
-  // TAB BUTTONS
-  // -----------------------------
   Widget _buildTabButtons() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -126,9 +121,6 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  // -----------------------------
-  // LOGIKA KONTEN UTAMA
-  // -----------------------------
   Widget _buildTabContent(List<DocumentSnapshot> docs) {
     switch (selectedTab) {
       case 'Hari Ini':
@@ -142,9 +134,6 @@ class _ReportScreenState extends State<ReportScreen> {
     }
   }
 
-  // =======================================================================
-  // 1. LAPORAN HARI INI
-  // =======================================================================
   Widget _buildTodayReport(List<DocumentSnapshot> docs) {
     DateTime now = DateTime.now();
     DateTime startOfDay = DateTime(now.year, now.month, now.day);
@@ -216,7 +205,6 @@ class _ReportScreenState extends State<ReportScreen> {
 
           const SizedBox(height: 30),
 
-          // 3. LIST RINCIAN (LEGEND) DI BAWAH
           Column(
             children: categoryTotals.entries.map((e) {
               final percentage = (e.value / totalExpense) * 100;
@@ -273,9 +261,6 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  // =======================================================================
-  // 2. LAPORAN BULANAN
-  // =======================================================================
   Widget _buildMonthlyReport(List<DocumentSnapshot> docs) {
     Map<String, Map<String, dynamic>> monthlyData = {};
 
@@ -331,9 +316,6 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  // =======================================================================
-  // 3. LAPORAN MINGGUAN
-  // =======================================================================
   Widget _buildWeeklyReport(List<DocumentSnapshot> docs) {
     Map<String, Map<String, dynamic>> weeklyData = {};
 
@@ -397,7 +379,6 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  // WIDGET CARD UMUM
   Widget _buildReportCard(
     String title,
     double income,
@@ -456,7 +437,6 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  // --- NAVIGASI BAWAH ---
   Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
@@ -494,7 +474,6 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  // 🔥 NAV BUTTON DIPERBAIKI (TANPA ANIMASI) 🔥
   Widget _navButton(
     BuildContext context,
     IconData icon,

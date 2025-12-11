@@ -399,7 +399,6 @@ class _TransactionScreenState extends State<TransactionScreen>
           bottomNavigationBar: _buildBottomNav(context),
         ),
 
-        // LAYER 2: LATAR PUTIH TRANSPARAN
         if (isMenuOpen)
           Positioned.fill(
             child: GestureDetector(
@@ -408,7 +407,6 @@ class _TransactionScreenState extends State<TransactionScreen>
             ),
           ),
 
-        // LAYER 3: MENU ITEMS
         Positioned(
           right: 24,
           bottom: 160,
@@ -669,7 +667,6 @@ class _TransactionScreenState extends State<TransactionScreen>
       onPressed: active
           ? null
           : () {
-              // 🔥 UPDATE: MENGHILANGKAN ANIMASI PINDAH HALAMAN 🔥
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(

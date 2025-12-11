@@ -17,7 +17,6 @@ class WelcomeScreen extends StatelessWidget {
               // Bagian atas: logo dan teks
               Column(
                 children: [
-                  // PASTIKAN kamu sudah setup 'assets/images/logo.png' di pubspec.yaml
                   Image.asset('assets/images/logo.png', width: 400),
                   const SizedBox(height: 16),
                   const SizedBox(height: 24),
@@ -33,7 +32,7 @@ class WelcomeScreen extends StatelessWidget {
                 ],
               ),
 
-              // Bagian bawah (Tombol)
+              // Bagian bawah
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

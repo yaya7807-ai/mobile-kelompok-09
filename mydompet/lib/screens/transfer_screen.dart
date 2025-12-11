@@ -16,17 +16,14 @@ class _TransferScreenState extends State<TransferScreen> {
 
   final TextEditingController amountController = TextEditingController();
 
-  // Variabel untuk Dompet ASAL
   String? fromWalletId;
   String? fromWalletName;
 
-  // Variabel untuk Dompet TUJUAN
   String? toWalletId;
   String? toWalletName;
 
   bool isLoading = false;
 
-  // --- FORMATTER ANGKA ---
   void _onAmountChanged(String value) {
     String cleanString = value.replaceAll(RegExp(r'[^0-9]'), '');
     if (cleanString.isEmpty) return;
@@ -43,7 +40,6 @@ class _TransferScreenState extends State<TransferScreen> {
     );
   }
 
-  // --- PICK DATE & TIME ---
   Future<void> pickDate() async {
     DateTime? result = await showDatePicker(
       context: context,
@@ -62,12 +58,9 @@ class _TransferScreenState extends State<TransferScreen> {
     if (result != null) setState(() => selectedTime = result);
   }
 
-  // --- LOGIKA SIMPAN TRANSFER (ATOMIC) ---
   Future<void> saveTransfer() async {
-    // 1. Bersihkan format titik
     String cleanAmount = amountController.text.replaceAll('.', '');
 
-    // 2. Validasi Input Dasar
     if (cleanAmount.isEmpty || fromWalletId == null || toWalletId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Mohon lengkapi semua data")),
@@ -75,7 +68,6 @@ class _TransferScreenState extends State<TransferScreen> {
       return;
     }
 
-    // 3. Validasi Logika
     if (fromWalletId == toWalletId) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -99,9 +91,7 @@ class _TransferScreenState extends State<TransferScreen> {
         selectedTime.minute,
       );
 
-      // 4. JALANKAN TRANSAKSI DATABASE
       await FirebaseFirestore.instance.runTransaction((transaction) async {
-        // A. Ambil Referensi Kedua Dompet
         DocumentReference fromRef = FirebaseFirestore.instance
             .collection('wallets')
             .doc(fromWalletId);
@@ -109,7 +99,6 @@ class _TransferScreenState extends State<TransferScreen> {
             .collection('wallets')
             .doc(toWalletId);
 
-        // B. Baca Data Terbaru (Snapshot)
         DocumentSnapshot fromSnapshot = await transaction.get(fromRef);
         DocumentSnapshot toSnapshot = await transaction.get(toRef);
 
@@ -120,21 +109,16 @@ class _TransferScreenState extends State<TransferScreen> {
         int sourceBalance = fromSnapshot['balance'] ?? 0;
         int destBalance = toSnapshot['balance'] ?? 0;
 
-        // C. Cek Apakah Saldo Cukup?
         if (sourceBalance < amount) {
           throw Exception("Saldo di ${fromSnapshot['name']} tidak mencukupi!");
         }
 
-        // D. Hitung Saldo Baru
         int newSourceBalance = sourceBalance - amount;
         int newDestBalance = destBalance + amount;
 
-        // E. Update Kedua Dompet
         transaction.update(fromRef, {'balance': newSourceBalance});
         transaction.update(toRef, {'balance': newDestBalance});
 
-        // F. Catat Riwayat Transaksi
-        // Kita catat sebagai tipe 'pindah_saldo' (supaya tidak merusak grafik pemasukan/pengeluaran)
         DocumentReference newTransRef = FirebaseFirestore.instance
             .collection('transactions')
             .doc();
@@ -153,7 +137,6 @@ class _TransferScreenState extends State<TransferScreen> {
         });
       });
 
-      // 5. Sukses
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -161,7 +144,6 @@ class _TransferScreenState extends State<TransferScreen> {
         );
       }
     } catch (e) {
-      // Hapus kata "Exception: " agar pesan lebih bersih
       String errorMsg = e.toString().replaceAll("Exception: ", "");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -198,7 +180,6 @@ class _TransferScreenState extends State<TransferScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ================= DATE + TIME =================
               Row(
                 children: [
                   Expanded(
@@ -224,8 +205,6 @@ class _TransferScreenState extends State<TransferScreen> {
               ),
               const SizedBox(height: 15),
 
-              // ================= STREAM BUILDER UNTUK DATA KANTONG =================
-              // Kita panggil StreamBuilder di sini agar dropdown bisa diisi data real
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('wallets')
@@ -239,7 +218,7 @@ class _TransferScreenState extends State<TransferScreen> {
                     for (var doc in snapshot.data!.docs) {
                       Map<String, dynamic> data =
                           doc.data() as Map<String, dynamic>;
-                      // Format: "Nama Kantong (Rp 100.000)" supaya user tahu saldonya
+                      //"Nama Kantong (Rp 100.000)" supaya user tahu saldonya
                       String formattedBal = NumberFormat.compactCurrency(
                         locale: 'id_ID',
                         symbol: 'Rp',
@@ -261,7 +240,6 @@ class _TransferScreenState extends State<TransferScreen> {
 
                   return Column(
                     children: [
-                      // --- DROPDOWN DARI (SUMBER) ---
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -295,7 +273,6 @@ class _TransferScreenState extends State<TransferScreen> {
 
                       const SizedBox(height: 15),
 
-                      // --- DROPDOWN KE (TUJUAN) ---
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -333,7 +310,6 @@ class _TransferScreenState extends State<TransferScreen> {
 
               const SizedBox(height: 15),
 
-              // ================= INPUT JUMLAH =================
               _buildTextField(
                 "Jumlah yang dipindah",
                 amountController,
@@ -341,7 +317,6 @@ class _TransferScreenState extends State<TransferScreen> {
               ),
               const SizedBox(height: 25),
 
-              // ================= BUTTON SIMPAN =================
               Align(
                 alignment: Alignment.centerRight,
                 child: ElevatedButton(
@@ -382,7 +357,6 @@ class _TransferScreenState extends State<TransferScreen> {
     );
   }
 
-  // Helper Widget
   Widget _buildBox(String text, {double? width}) {
     return Container(
       width: width,

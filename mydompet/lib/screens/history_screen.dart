@@ -37,7 +37,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        // --- WARNA KEMBALI KUNING ---
         backgroundColor: const Color.fromARGB(255, 255, 235, 59),
         foregroundColor: Colors.black, // Teks & Ikon jadi Hitam
         elevation: 0,
@@ -49,7 +48,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
       body: Column(
         children: [
-          // --- KOLOM PENCARIAN ---
+          //KOLOM PENCARIAN
           Container(
             color: const Color.fromARGB(
               255,

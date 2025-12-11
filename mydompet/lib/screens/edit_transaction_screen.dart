@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -42,7 +41,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     categoryController = TextEditingController(text: widget.data['kategori']);
 
     // Format Uang Awal
-    double amount = (widget.data['jumlah'] as num).toDouble();
+    int amount = (widget.data['jumlah'] as num).toInt();
     String formatted = NumberFormat.currency(
       locale: 'id_ID',
       symbol: '',
@@ -348,8 +347,8 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                 ),
                 child: Text(
                   widget.data['tipe'] == 'pindah_saldo'
-                      ? "Dari: ${widget.data['walletName']} \u2192 Ke: ${widget.data['toWalletName']}"
-                      : "Dompet: ${widget.data['walletName']}",
+                      ? "Dari: ${widget.data['walletName'] ?? '-'} → Ke: ${widget.data['toWalletName'] ?? '-'}"
+                      : "Dompet: ${widget.data['walletName'] ?? '-'}",
                   style: const TextStyle(
                     color: Colors.black54,
                     fontWeight: FontWeight.bold,

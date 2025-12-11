@@ -56,18 +56,17 @@ class _EditBalanceScreenState extends State<EditBalanceScreen> {
   }
 
   // Simpan perubahan
+  // Simpan perubahan
   Future<void> saveWallet() async {
-void saveWallet() async {
-  String cleanBalance = balanceController.text.replaceAll('.', '');
-  int finalBalance = int.tryParse(cleanBalance) ?? widget.balance;
+    String cleanBalance = balanceController.text.replaceAll('.', '');
+    int finalBalance = int.tryParse(cleanBalance) ?? widget.balance;
 
-  await widget.onUpdate(finalBalance);
+    await widget.onUpdate(finalBalance);
 
-  if (mounted && Navigator.canPop(context)) {
-    Navigator.pop(context);
+    if (mounted && Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {

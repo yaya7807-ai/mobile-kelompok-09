@@ -24,7 +24,6 @@ class _TransactionScreenState extends State<TransactionScreen>
   DateTime selectedDate = DateTime.now();
 
   late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
   late Animation<double> _rotateAnimation;
   bool isMenuOpen = false;
 
@@ -34,11 +33,6 @@ class _TransactionScreenState extends State<TransactionScreen>
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
-    );
-
-    _fadeAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.fastOutSlowIn,
     );
 
     _rotateAnimation = Tween<double>(begin: 0.0, end: 0.125).animate(
